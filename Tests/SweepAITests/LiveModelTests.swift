@@ -35,19 +35,17 @@ import Testing
 
     let explanation = try #require(await explainer.explainFolder(folderFacts))
     let summary = await explainer.summarize(summaryFacts)
-    print("LIVE title:", explanation.title, "| what:", explanation.whatItIs, "| removed:", explanation.ifRemoved, "| summary:", summary)
-    let combined = "\(explanation.title) \(explanation.whatItIs) \(explanation.ifRemoved) \(summary)".lowercased()
+    print("LIVE title:", explanation.title, "| summary:", explanation.summary, "| summary:", summary)
+    let combined = "\(explanation.title) \(explanation.summary) \(summary)".lowercased()
 
     #expect((1...5).contains(explanation.title.split(whereSeparator: \.isWhitespace).count))
-    #expect(!explanation.whatItIs.isEmpty)
-    #expect(!explanation.ifRemoved.isEmpty)
+    #expect(!explanation.summary.isEmpty)
     #expect(!summary.isEmpty)
     #expect(!combined.contains("safe to delete"))
     #expect(!combined.contains("guaranteed"))
 
     print("LIVE_FOLDER_TITLE: \(explanation.title)")
-    print("LIVE_FOLDER_WHAT: \(explanation.whatItIs)")
-    print("LIVE_FOLDER_REMOVAL: \(explanation.ifRemoved)")
+    print("LIVE_FOLDER_SUMMARY: \(explanation.summary)")
     print("LIVE_SUMMARY: \(summary)")
 
     let projects = FolderFacts(
@@ -59,9 +57,22 @@ import Testing
         fileTypeHistogram: ["database": 4, "data": 208])
     // nil is an acceptable answer: the filter rejects any promise that user data comes back.
     if let projectExplanation = await explainer.explainFolder(projects) {
-        print("LIVE2 title:", projectExplanation.title, "| what:", projectExplanation.whatItIs, "| removed:", projectExplanation.ifRemoved)
-        #expect(!projectExplanation.ifRemoved.lowercased().contains("rebuild"))
+        print("LIVE2 title:", projectExplanation.title, "| summary:", projectExplanation.summary)
+        #expect(!projectExplanation.summary.lowercased().contains("rebuild"))
     } else {
         print("LIVE2 rejected by filter")
+    }
+
+    // The user saw two callouts repeating "memory-bench and Aoura" for their Dev folder.
+    let dev = FolderFacts(
+        path: "~/Dev", allocatedBytes: 58_000_000_000, itemCount: 23,
+        topChildren: [.init(name: "memory-bench", allocatedBytes: 22_000_000_000),
+                      .init(name: "Aoura", allocatedBytes: 14_000_000_000),
+                      .init(name: "old-projects", allocatedBytes: 22_000_000_000)],
+        owningBundleID: nil, newestModificationDate: nil, fileTypeHistogram: ["folder or no extension": 23])
+    if let devExplanation = await explainer.explainFolder(dev) {
+        print("LIVE3 title:", devExplanation.title, "| summary:", devExplanation.summary)
+        let mentions = devExplanation.summary.lowercased().components(separatedBy: "memory-bench").count - 1
+        #expect(mentions <= 1, "repeats project names: \(devExplanation.summary)")
     }
 }

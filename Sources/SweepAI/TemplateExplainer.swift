@@ -30,7 +30,7 @@ public struct TemplateExplainer: Explaining {
             ifRemoved = "The effect of removing it is not known, so review it in Finder first."
         }
 
-        return FolderExplanation(title: title, whatItIs: whatItIs, ifRemoved: ifRemoved, kind: kind)
+        return FolderExplanation(title: title, summary: whatItIs + " " + ifRemoved, kind: kind)
     }
 
     /// The screen already shows the total in large type, so the sentence says what it is made of.

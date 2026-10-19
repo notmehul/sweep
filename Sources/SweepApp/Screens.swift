@@ -371,17 +371,13 @@ struct FolderCard: View {
                     .accessibilityLabel("Close")
             }
             if let insight {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(insight.explanation.whatItIs)
-                        .font(Theme.body).foregroundStyle(Theme.text)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(insight.explanation.ifRemoved)
-                        .font(Theme.body).foregroundStyle(Theme.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .transition(.opacity)
+                Text(insight.explanation.summary)
+                    .font(Theme.body).foregroundStyle(Theme.text)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .transition(.opacity)
                 HStack {
-                    Label(insight.byAppleIntelligence ? "Written by Apple Intelligence on this Mac" : "Written by Sweep",
+                    Label(insight.byAppleIntelligence ? "Written by AI" : "Written by Sweep",
                           systemImage: insight.byAppleIntelligence ? "sparkles" : "text.alignleft")
                         .font(.system(size: 12)).foregroundStyle(Theme.secondary)
                     Spacer()

@@ -43,8 +43,7 @@ private struct FakeLanguageModelExecutor: LanguageModelExecutor {
     let json = """
         {
           "title": "Spotify Cache",
-          "whatItIs": "This folder holds temporary music files.",
-          "ifRemoved": "Spotify may recreate these files.",
+          "summary": "This folder holds temporary music files. Spotify may recreate these files.",
           "kind": "cache"
         }
         """

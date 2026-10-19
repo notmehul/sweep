@@ -2,8 +2,7 @@ import FoundationModels
 
 struct GeneratedFolderExplanation: Generable {
     var title: String
-    var whatItIs: String
-    var ifRemoved: String
+    var summary: String
     var kind: String
 
     static var generationSchema: GenerationSchema {
@@ -17,13 +16,8 @@ struct GeneratedFolderExplanation: Generable {
                     type: String.self
                 ),
                 .init(
-                    name: "whatItIs",
-                    description: "One sentence explaining what the folder contains.",
-                    type: String.self
-                ),
-                .init(
-                    name: "ifRemoved",
-                    description: "One sentence explaining what may happen if the folder is removed.",
+                    name: "summary",
+                    description: "Two or three sentences in one paragraph: what the folder is and what is inside it, then what removing it would mean. Never say the same thing twice.",
                     type: String.self
                 ),
                 .init(
@@ -38,23 +32,21 @@ struct GeneratedFolderExplanation: Generable {
 
     init(_ content: GeneratedContent) throws {
         title = try content.value(String.self, forProperty: "title")
-        whatItIs = try content.value(String.self, forProperty: "whatItIs")
-        ifRemoved = try content.value(String.self, forProperty: "ifRemoved")
+        summary = try content.value(String.self, forProperty: "summary")
         kind = try content.value(String.self, forProperty: "kind")
     }
 
     var generatedContent: GeneratedContent {
         GeneratedContent(properties: [
             "title": title,
-            "whatItIs": whatItIs,
-            "ifRemoved": ifRemoved,
+            "summary": summary,
             "kind": kind,
         ])
     }
 
     func explanation() -> FolderExplanation? {
         guard let kind = FolderExplanation.Kind(rawValue: kind) else { return nil }
-        return FolderExplanation(title: title, whatItIs: whatItIs, ifRemoved: ifRemoved, kind: kind)
+        return FolderExplanation(title: title, summary: summary, kind: kind)
     }
 }
 

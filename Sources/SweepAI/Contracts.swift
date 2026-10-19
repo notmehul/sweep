@@ -54,14 +54,14 @@ public struct FolderExplanation: Sendable, Equatable {
     }
 
     public var title: String
-    public var whatItIs: String
-    public var ifRemoved: String
+    /// One paragraph of two or three sentences: what the folder is and what's inside it,
+    /// then what removing it would mean. One flowing thought, no repetition.
+    public var summary: String
     public var kind: Kind
 
-    public init(title: String, whatItIs: String, ifRemoved: String, kind: Kind) {
+    public init(title: String, summary: String, kind: Kind) {
         self.title = title
-        self.whatItIs = whatItIs
-        self.ifRemoved = ifRemoved
+        self.summary = summary
         self.kind = kind
     }
 }

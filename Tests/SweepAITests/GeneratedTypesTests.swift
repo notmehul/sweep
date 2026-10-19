@@ -5,8 +5,7 @@ import Testing
 @Test func folderExplanationDecodesGeneratedContent() throws {
     let content = GeneratedContent(properties: [
         "title": "Spotify Cache",
-        "whatItIs": "This folder holds temporary music files.",
-        "ifRemoved": "Spotify may download the music files again.",
+        "summary": "This folder holds temporary music files. Spotify may download them again.",
         "kind": "cache",
     ])
 
@@ -14,8 +13,7 @@ import Testing
     let explanation = try #require(generated.explanation())
 
     #expect(explanation.title == "Spotify Cache")
-    #expect(explanation.whatItIs == "This folder holds temporary music files.")
-    #expect(explanation.ifRemoved == "Spotify may download the music files again.")
+    #expect(explanation.summary == "This folder holds temporary music files. Spotify may download them again.")
     #expect(explanation.kind == .cache)
     #expect(try GeneratedFolderExplanation(generated.generatedContent).explanation() == explanation)
 }
@@ -23,8 +21,7 @@ import Testing
 @Test func folderExplanationRejectsUnknownKind() throws {
     let content = GeneratedContent(properties: [
         "title": "Mystery Folder",
-        "whatItIs": "This folder has an unknown purpose.",
-        "ifRemoved": "Its effect is not known.",
+        "summary": "This folder has an unknown purpose. Its effect is not known.",
         "kind": "other",
     ])
 

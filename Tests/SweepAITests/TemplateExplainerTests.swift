@@ -18,8 +18,7 @@ import Testing
 
     #expect(explanation?.title == "PersistentCache")
     #expect(explanation?.kind == .cache)
-    #expect(explanation?.whatItIs == "This folder holds 9.1 GB of temporary files used to make an app load faster.")
-    #expect(explanation?.ifRemoved == "The app may recreate or download these files the next time you use it.")
+    #expect(explanation?.summary == "This folder holds 9.1 GB of temporary files used to make an app load faster. The app may recreate or download these files the next time you use it.")
 }
 
 @Test func templateSummaryAlwaysReturnsASentence() async {
@@ -71,14 +70,12 @@ import Testing
 @Test func postFilterEnforcesFolderShape() {
     let valid = FolderExplanation(
         title: "Spotify Cache",
-        whatItIs: "It holds 9.1 GB of temporary music files.",
-        ifRemoved: "Spotify may download 9.1 GB again.",
+        summary: "It holds 9.1 GB of temporary music files. Spotify may download 9.1 GB again.",
         kind: .cache
     )
     let longTitle = FolderExplanation(
         title: "One Two Three Four Five Six",
-        whatItIs: valid.whatItIs,
-        ifRemoved: valid.ifRemoved,
+        summary: valid.summary,
         kind: .cache
     )
 
@@ -120,8 +117,8 @@ private struct EmptyExplainer: Explaining {
 }
 
 @Test func filterRejectsRegenerationPromiseOutsideCaches() {
-    let claim = FolderExplanation(title: "Project files", whatItIs: "Projects the app stores.",
-                                  ifRemoved: "The app may rebuild those files.", kind: .appData)
+    let claim = FolderExplanation(title: "Project files",
+                                  summary: "Projects the app stores. The app may rebuild those files.", kind: .appData)
     #expect(!ModelOutputFilter.accepts(claim, allowedFactText: "", mayClaimRegeneration: false))
     #expect(ModelOutputFilter.accepts(claim, allowedFactText: "", mayClaimRegeneration: true))
 }

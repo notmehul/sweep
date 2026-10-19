@@ -22,15 +22,14 @@ struct AuroraView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var scheme
 
-    /// Each curtain: colour index, base line (fraction of height), wave frequency, drift
-    /// speed, phase, amplitude, height. Green dominates, as in a real aurora; teal, violet and
-    /// pink sit higher and thinner, like the fringes at the top of the curtains.
-    private let curtains: [(color: Int, base: CGFloat, frequency: CGFloat, speed: Double, phase: Double, amplitude: CGFloat, height: CGFloat)] = [
-        (0, 0.34, 1.3, 0.050, 0.0, 0.06, 0.26),
-        (0, 0.26, 2.1, -0.040, 2.2, 0.05, 0.20),
-        (1, 0.30, 1.7, 0.030, 4.0, 0.07, 0.16),
-        (2, 0.16, 1.1, -0.025, 1.1, 0.05, 0.14),
-        (3, 0.12, 2.6, 0.035, 5.3, 0.03, 0.08),
+    /// Each curtain: colour index, height of its base (fraction of window), wave
+    /// frequency, drift speed, phase, amplitude.
+    private let curtains: [(color: Int, base: CGFloat, frequency: CGFloat, speed: Double, phase: Double, amplitude: CGFloat)] = [
+        (0, 0.30, 1.6, 0.070, 0.0, 0.07),
+        (1, 0.22, 2.3, -0.050, 1.7, 0.05),
+        (2, 0.36, 1.2, 0.040, 3.1, 0.08),
+        (3, 0.18, 2.8, -0.090, 4.4, 0.04),
+        (4, 0.26, 1.9, 0.060, 5.9, 0.06),
     ]
 
     var body: some View {
@@ -38,7 +37,7 @@ struct AuroraView: View {
             let t = reduceMotion ? 12 : timeline.date.timeIntervalSinceReferenceDate
             Canvas { context, size in
                 context.drawLayer { layer in
-                    layer.addFilter(.blur(radius: min(size.width, size.height) * 0.018))
+                    layer.addFilter(.blur(radius: min(size.width, size.height) * 0.07))
                     for curtain in curtains {
                         draw(curtain, in: &layer, size: size, time: t)
                     }
@@ -46,38 +45,39 @@ struct AuroraView: View {
             }
         }
         .blendMode(scheme == .dark ? .screen : .multiply)
-        .opacity(scheme == .dark ? 0.9 : 0.28)
+        .opacity(scheme == .dark ? 0.62 : 0.30)
         .allowsHitTesting(false)
     }
 
-    /// A curtain is drawn as thin vertical strips: each hangs from a slowly waving line and
-    /// fades upward; their brightness varies across the width, which reads as aurora rays.
-    private func draw(_ c: (color: Int, base: CGFloat, frequency: CGFloat, speed: Double, phase: Double, amplitude: CGFloat, height: CGFloat),
+    private func draw(_ curtain: (color: Int, base: CGFloat, frequency: CGFloat, speed: Double, phase: Double, amplitude: CGFloat),
                       in context: inout GraphicsContext, size: CGSize, time: Double) {
-        let color = Theme.aurora[c.color]
-        let strips = 90
-        let width = size.width / CGFloat(strips)
-        for i in 0..<strips {
-            let x = (CGFloat(i) + 0.5) / CGFloat(strips)
-            let drift = time * c.speed
-            let wave = sin(Double(x * c.frequency) * 2 * .pi + drift * 2 * .pi / 4 + c.phase)
-            let baseY = (c.base + c.amplitude * CGFloat(wave)) * size.height
-            // Rays: two interfering ripples across the width, slowly shifting.
-            let ray = 0.55 + 0.45 * sin(Double(x) * 37 + c.phase + drift * 3) * sin(Double(x) * 11 - drift * 2 + c.phase)
-            let breathe = 0.8 + 0.2 * sin(time * 0.09 + c.phase + Double(x) * 2)
-            let alpha = max(0, ray) * breathe
-            let top = baseY - c.height * size.height * CGFloat(0.7 + 0.3 * ray)
-            let rect = CGRect(x: CGFloat(i) * width - 0.5, y: top, width: width + 1, height: baseY - top + size.height * 0.02)
-            context.fill(Path(rect), with: .linearGradient(
-                Gradient(stops: [
-                    .init(color: color.opacity(0), location: 0),
-                    .init(color: color.opacity(0.35 * alpha), location: 0.6),
-                    .init(color: color.opacity(0.95 * alpha), location: 0.94),
-                    .init(color: color.opacity(0), location: 1),
-                ]),
-                startPoint: CGPoint(x: rect.midX, y: rect.minY),
-                endPoint: CGPoint(x: rect.midX, y: rect.maxY)))
+        let color = Theme.aurora[curtain.color]
+        let breathe = 0.75 + 0.25 * sin(time * 0.11 + curtain.phase)
+        var top = Path()
+        var bottom: [CGPoint] = []
+        let steps = 48
+        for i in 0...steps {
+            let x = CGFloat(i) / CGFloat(steps)
+            let wave = sin(Double(x * curtain.frequency * 2 * .pi) + time * curtain.speed * 2 * .pi / 6 + curtain.phase)
+            let y = (curtain.base + curtain.amplitude * CGFloat(wave)) * size.height
+            // Curtains hang from a wavy line: tall streaks above it, a soft fringe below.
+            let height = size.height * (0.16 + 0.10 * CGFloat(sin(Double(x) * 9 + curtain.phase + time * 0.05)))
+            let point = CGPoint(x: x * size.width, y: y - height)
+            if i == 0 { top.move(to: point) } else { top.addLine(to: point) }
+            bottom.append(CGPoint(x: x * size.width, y: y + size.height * 0.03))
         }
+        for point in bottom.reversed() { top.addLine(to: point) }
+        top.closeSubpath()
+        let midY = curtain.base * size.height
+        context.fill(top, with: .linearGradient(
+            Gradient(stops: [
+                .init(color: color.opacity(0), location: 0),
+                .init(color: color.opacity(0.55 * breathe), location: 0.55),
+                .init(color: color.opacity(0.85 * breathe), location: 0.92),
+                .init(color: color.opacity(0), location: 1),
+            ]),
+            startPoint: CGPoint(x: 0, y: midY - size.height * 0.3),
+            endPoint: CGPoint(x: 0, y: midY + size.height * 0.05)))
     }
 }
 
@@ -85,7 +85,7 @@ struct AuroraView: View {
 private struct BehindWindowBlur: NSViewRepresentable {
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
-        view.material = .underWindowBackground
+        view.material = .hudWindow
         view.blendingMode = .behindWindow
         view.state = .active
         return view

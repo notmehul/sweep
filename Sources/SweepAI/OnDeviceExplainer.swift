@@ -4,17 +4,23 @@ import FoundationModels
 public struct OnDeviceExplainer: Explaining {
     private static let instructions = """
         Write for a person who is not technical. Use short, plain sentences.
+        Speak to the reader as "you". Never write "the person" or "the user".
+        Base the explanation on the folder's name and the names of the largest items inside it.
+        When those items belong to different apps, say the folder holds data for several apps
+        rather than describing it as one app's files.
         Never claim that removing something is safe. Never use the phrase safe to delete.
         Never invent a number or change a number. Use only the facts in the prompt.
         Do not decide whether anything should be removed. Describe only what the facts support.
-        For folder explanations, whatItIs and ifRemoved must each contain exactly one sentence.
+        For folder explanations, write one paragraph of two or three sentences: what the folder is
+        and what is inside it, then what removing it would mean. Each sentence adds something new;
+        never restate the same point, and never list the same names twice.
         Name the app in plain words, and say concretely what the files are for.
         A folder named Cache, Caches or similar holds copies an app keeps so things load faster; the app
         fetches or rebuilds them when needed. For any folder that is not a cache, never say the app
         rebuilds, recreates or downloads the files again; say what the person would lose instead.
         Avoid vague phrases such as "some stored information" or "data and database files".
-        Example for a browser cache: whatItIs "Copies of web pages and images Chrome keeps so sites open faster."
-        ifRemoved "Chrome downloads them again the next time you visit those sites."
+        Example for a browser cache: "Copies of web pages and images Chrome keeps so sites open faster.
+        Chrome downloads them again the next time you visit those sites."
         """
 
     private let model: SystemLanguageModel
@@ -119,7 +125,7 @@ public struct OnDeviceExplainer: Explaining {
 
         return """
             Explain this folder using only these facts.
-            Keep whatItIs to one sentence and ifRemoved to one sentence; never add a second sentence to either field.
+            Write the summary as two or three sentences that each add something new.
             Path: \(facts.path)
             Allocated size: \(ByteText.format(facts.allocatedBytes))
             Item count: \(facts.itemCount)
