@@ -2,21 +2,29 @@
 
 Sweep finds what's taking space on your Mac and explains it in plain language. Nothing leaves your Mac.
 
-- **Rebuilds itself:** app caches, data left behind by deleted apps, and old developer clutter. Cleaned with one click.
-- **Probably don't need:** apps you haven't opened in months, installers, duplicates, and old copies sitting next to new ones. These go to the Trash, so every removal can be undone.
-- **Your call:** big files you haven't opened in a year. Sweep shows them and never touches them.
+![Sweep's results screen: a sunburst of the disk, 83.8 GB that can be freed, and three groups of findings](docs/images/results.jpg)
 
-Explanations come from Apple's on-device model. There's no server, no account and no telemetry. Without Apple Intelligence, everything still works except the plain-language explanations.
+Open it, watch the scan, and Sweep sorts what it found into three groups:
 
-> Status: early development. See [docs/status.md](docs/status.md).
+- **Rebuilds itself:** app caches, render caches from video and photo apps, and old developer clutter. Ticked by default and cleaned with one click.
+- **Probably don't need:** apps you haven't opened in months, leftovers from deleted apps, installers, duplicates, and downloads you never opened. These go to the Trash, so every removal can be undone.
+- **Your call:** big files you haven't opened in a year, screenshots, and photos from Messages and WhatsApp. Sweep shows them and never removes them.
 
-## Build
+Click any part of the chart and Apple's on-device model explains what that folder is. There's no server, no account and no telemetry. Without Apple Intelligence everything still works; the explanations come from Sweep's own wording instead.
 
-Requires macOS 26+ on Apple Silicon and the Command Line Tools. Xcode isn't needed.
+> Status: early. It works end to end on the author's Mac; the rules are being checked on more Macs. See [docs/status.md](docs/status.md).
+
+## Build from source
+
+Requires macOS 26+ on Apple Silicon and the Command Line Tools (`xcode-select --install`). Xcode isn't needed.
 
 ```sh
-swift test          # engine tests
-scripts/run.sh      # build, sign and open Sweep.app
+swift test          # engine, rules and safety tests
+scripts/run.sh      # build, sign and open build/Sweep.app
 ```
 
-Contributors start with [AGENTS.md](AGENTS.md). To add a cleanup rule, see [docs/rules.md](docs/rules.md).
+Want to read the code? Start with [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+
+MIT. See [LICENSE](LICENSE).
