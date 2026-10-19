@@ -126,6 +126,17 @@ struct BucketScreen: View {
                  : "\(selectedHere.count) of \(rows.count) selected here")
                 .font(Theme.caption)
                 .foregroundStyle(Theme.secondary)
+            if bucket != .yours && !rows.isEmpty {
+                let allOn = selectedHere.count == rows.count
+                Button(allOn ? "Select none" : "Select all") {
+                    for row in rows {
+                        for finding in row.findings {
+                            if allOn { model.selection.remove(finding.id) } else { model.selection.insert(finding.id) }
+                        }
+                    }
+                }
+                .buttonStyle(QuietButtonStyle())
+            }
             Spacer()
             Button(model.selectedBytes > 0 ? "Free \(Format.bytes(model.selectedBytes))…" : "Nothing selected") {
                 model.confirming = true

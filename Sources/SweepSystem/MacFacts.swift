@@ -18,6 +18,7 @@ public final class MacFacts: SystemFacts, CandidateCollectionFacts, @unchecked S
     private let applicationURLResolver: (String) -> URL?
     private let spotlight: Spotlight
     private let gitProbe: GitProbe
+    private let extensionRegistry = ExtensionRegistry()
 
     public var hasDeveloperTools: Bool { persona.isDeveloper }
     public var installedApplicationNames: [String] {
@@ -72,6 +73,8 @@ public final class MacFacts: SystemFacts, CandidateCollectionFacts, @unchecked S
         installedBundleIDs.contains(bundleID)
             || runningBundleIDs.contains(bundleID)
             || applicationURLResolver(bundleID) != nil
+            || installedBundleIDs.contains { bundleID.hasPrefix($0 + ".") }
+            || extensionRegistry.isRegistered(bundleID)
     }
 
     public func isRunning(bundleID: String) -> Bool {
@@ -119,5 +122,30 @@ public final class MacFacts: SystemFacts, CandidateCollectionFacts, @unchecked S
 
     public func gitState(repoContaining path: String) -> GitState? {
         gitProbe.gitState(repoContaining: path)
+    }
+}
+
+/// App extensions (Intents, Share, Safari extensions) keep their own data folders under their
+/// own IDs. `pluginkit` knows which ones are installed, so their folders aren't "leftovers".
+final class ExtensionRegistry: @unchecked Sendable {
+    private let lock = NSLock()
+    private var cache: [String: Bool] = [:]
+
+    func isRegistered(_ bundleID: String) -> Bool {
+        lock.lock(); if let known = cache[bundleID] { lock.unlock(); return known }; lock.unlock()
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/pluginkit")
+        process.arguments = ["-m", "-i", bundleID]
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = FileHandle.nullDevice
+        var found = false
+        if (try? process.run()) != nil {
+            let output = pipe.fileHandleForReading.readDataToEndOfFile()
+            process.waitUntilExit()
+            found = String(decoding: output, as: UTF8.self).contains(bundleID)
+        }
+        lock.lock(); cache[bundleID] = found; lock.unlock()
+        return found
     }
 }

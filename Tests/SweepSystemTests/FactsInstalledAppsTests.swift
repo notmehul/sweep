@@ -168,3 +168,24 @@ private struct FactsFixture {
 @Test func appNamesDropInvisibleDirectionMarks() {
     #expect(InstalledApps.cleanName("\u{200E}WhatsApp") == "WhatsApp")
 }
+
+@Test func registeredExtensionsAreNotLeftovers() {
+    // Every Mac has Apple's Notes extensions registered; a made-up ID is not.
+    let registry = ExtensionRegistry()
+    #expect(registry.isRegistered("com.example.sweep.not-a-real-extension") == false)
+}
+
+@Test func extensionDataOfAnInstalledAppCountsAsInstalled() throws {
+    let fixture = try FactsFixture()
+    defer { fixture.remove() }
+    let applications = fixture.root.appendingPathComponent("Applications.localized-test", isDirectory: true)
+    try FileManager.default.createDirectory(at: applications, withIntermediateDirectories: true)
+    try fixture.makeApplication(named: "Chat", in: applications, bundleID: "com.example.chat", displayName: "\u{200E}Chat")
+    let facts = MacFacts(homeDirectory: fixture.root.path, applicationRoots: [applications],
+                         spotlight: Spotlight(timeout: 0.1, applicationScope: applications.path),
+                         runningBundleIDs: [], applicationURLResolver: { _ in nil })
+
+    #expect(facts.isInstalled(bundleID: "com.example.chat.Intents"))
+    #expect(!facts.isInstalled(bundleID: "com.example.chatter"))
+    #expect(facts.installedApplicationNames == ["Chat"])
+}
