@@ -8,6 +8,13 @@ public struct OnDeviceExplainer: Explaining {
         Never invent a number or change a number. Use only the facts in the prompt.
         Do not decide whether anything should be removed. Describe only what the facts support.
         For folder explanations, whatItIs and ifRemoved must each contain exactly one sentence.
+        Name the app in plain words, and say concretely what the files are for.
+        A folder named Cache, Caches or similar holds copies an app keeps so things load faster; the app
+        fetches or rebuilds them when needed. For any folder that is not a cache, never say the app
+        rebuilds, recreates or downloads the files again; say what the person would lose instead.
+        Avoid vague phrases such as "some stored information" or "data and database files".
+        Example for a browser cache: whatItIs "Copies of web pages and images Chrome keeps so sites open faster."
+        ifRemoved "Chrome downloads them again the next time you visit those sites."
         """
 
     private let model: SystemLanguageModel
@@ -37,7 +44,8 @@ public struct OnDeviceExplainer: Explaining {
                 options: GenerationOptions(samplingMode: .greedy, maximumResponseTokens: 180)
             )
             guard let explanation = response.content.explanation(),
-                  ModelOutputFilter.accepts(explanation, allowedFactText: prompt)
+                  ModelOutputFilter.accepts(explanation, allowedFactText: prompt,
+                                                  mayClaimRegeneration: facts.path.lowercased().contains("cache"))
             else {
                 return nil
             }
@@ -129,9 +137,9 @@ public struct OnDeviceExplainer: Explaining {
         let coverage = Int((facts.coverage * 100).rounded())
 
         return """
-            Summarize this completed disk scan in one sentence using only these facts.
-            Begin "Sweep found [Freeable] you could free", replacing [Freeable] with its exact value.
-            Do not call Freeable free space or space the person could use.
+            The screen already shows the total, so do not repeat it.
+            In one plain sentence, tell the person what most of that space is, naming the largest findings with their sizes.
+            Example: "Most of it is Cursor's search index (18 GB) and app caches (15 GB)."
             Freeable: \(ByteText.format(facts.freeableBytes))
             Rebuilds itself: \(ByteText.format(facts.perBucketBytes.rebuilds))
             Needs review: \(ByteText.format(facts.perBucketBytes.review))

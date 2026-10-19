@@ -35,6 +35,7 @@ import Testing
 
     let explanation = try #require(await explainer.explainFolder(folderFacts))
     let summary = await explainer.summarize(summaryFacts)
+    print("LIVE title:", explanation.title, "| what:", explanation.whatItIs, "| removed:", explanation.ifRemoved, "| summary:", summary)
     let combined = "\(explanation.title) \(explanation.whatItIs) \(explanation.ifRemoved) \(summary)".lowercased()
 
     #expect((1...5).contains(explanation.title.split(whereSeparator: \.isWhitespace).count))
@@ -48,4 +49,19 @@ import Testing
     print("LIVE_FOLDER_WHAT: \(explanation.whatItIs)")
     print("LIVE_FOLDER_REMOVAL: \(explanation.ifRemoved)")
     print("LIVE_SUMMARY: \(summary)")
+
+    let projects = FolderFacts(
+        path: "~/Library/Application Support/Blackmagic Design/DaVinci Resolve/Resolve Project Library",
+        allocatedBytes: 64_000_000, itemCount: 212,
+        topChildren: [.init(name: "Resolve Projects", allocatedBytes: 60_000_000)],
+        owningBundleID: "com.blackmagic-design.DaVinciResolve",
+        newestModificationDate: Date(timeIntervalSince1970: 1_781_748_000),
+        fileTypeHistogram: ["database": 4, "data": 208])
+    // nil is an acceptable answer: the filter rejects any promise that user data comes back.
+    if let projectExplanation = await explainer.explainFolder(projects) {
+        print("LIVE2 title:", projectExplanation.title, "| what:", projectExplanation.whatItIs, "| removed:", projectExplanation.ifRemoved)
+        #expect(!projectExplanation.ifRemoved.lowercased().contains("rebuild"))
+    } else {
+        print("LIVE2 rejected by filter")
+    }
 }

@@ -33,24 +33,25 @@ public struct TemplateExplainer: Explaining {
         return FolderExplanation(title: title, whatItIs: whatItIs, ifRemoved: ifRemoved, kind: kind)
     }
 
+    /// The screen already shows the total in large type, so the sentence says what it is made of.
     public func summarize(_ facts: ScanSummaryFacts) async -> String {
-        let coverage = Int((facts.coverage * 100).rounded())
         guard facts.freeableBytes > 0 else {
-            return "Sweep did not find any space to free after scanning \(coverage)% of your Mac."
+            return "Nothing here needs cleaning right now. Your Mac is in good shape."
         }
+        let named = facts.topFindings.prefix(3).map { "\(Self.lowercasingFirst($0.title)) (\(ByteText.format($0.allocatedBytes)))" }
+        switch named.count {
+        case 0: return "Most of it is app caches and files your apps can recreate."
+        case 1: return "Most of it is \(named[0])."
+        case 2: return "Most of it is \(named[0]) and \(named[1])."
+        default: return "The biggest pieces are \(named[0]), \(named[1]) and \(named[2])."
+        }
+    }
 
-        var sentence = "Sweep found \(ByteText.format(facts.freeableBytes)) you could free"
-        let rebuilds = facts.perBucketBytes.rebuilds
-        let review = facts.perBucketBytes.review
-        if rebuilds > 0 && review > 0 {
-            sentence += ": \(ByteText.format(rebuilds)) can be rebuilt and \(ByteText.format(review)) needs your review"
-        } else if rebuilds > 0 {
-            sentence += ": \(ByteText.format(rebuilds)) can be rebuilt"
-        } else if review > 0 {
-            sentence += ": \(ByteText.format(review)) needs your review"
-        }
-        sentence += ", after scanning \(coverage)% of your Mac."
-        return sentence
+    private static func lowercasingFirst(_ title: String) -> String {
+        // Keep names like "Cursor" or "Telegram" capitalised; lower only generic leading words.
+        let generic = ["App", "Old", "Downloads", "Installers", "Leftovers", "Big", "Screen", "Unused"]
+        guard let first = title.split(separator: " ").first, generic.contains(String(first)) else { return title }
+        return title.prefix(1).lowercased() + title.dropFirst()
     }
 
     public func narrate(_ changes: [ChangeFact]) async -> String? {

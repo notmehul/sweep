@@ -11,6 +11,18 @@ enum ModelOutputFilter {
         return numbers(in: text).isSubset(of: allowedNumbers)
     }
 
+    /// Phrases that promise the files come back. Only true for caches, and a wrong promise here
+    /// could talk someone into deleting their own work, so it's allowed only for cache paths.
+    private static let regenerationClaims = ["rebuild", "recreate", "regenerate", "again", "re-download", "redownload"]
+
+    static func accepts(_ explanation: FolderExplanation, allowedFactText: String, mayClaimRegeneration: Bool) -> Bool {
+        if !mayClaimRegeneration {
+            let text = (explanation.whatItIs + " " + explanation.ifRemoved).lowercased()
+            if regenerationClaims.contains(where: text.contains) { return false }
+        }
+        return accepts(explanation, allowedFactText: allowedFactText)
+    }
+
     static func accepts(_ explanation: FolderExplanation, allowedFactText: String) -> Bool {
         let titleWords = explanation.title.split(whereSeparator: \.isWhitespace)
         guard (1...5).contains(titleWords.count),

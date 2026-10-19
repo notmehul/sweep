@@ -32,7 +32,7 @@ import Testing
 
     let summary = await TemplateExplainer().summarize(facts)
 
-    #expect(summary == "Sweep found 12 GB you could free: 9.1 GB can be rebuilt and 3.3 GB needs your review, after scanning 92% of your Mac.")
+    #expect(summary.hasPrefix("Most of it is") || summary.hasPrefix("The biggest pieces are"))
     #expect(summary.hasSuffix("."))
 }
 
@@ -44,7 +44,7 @@ import Testing
         coverage: 1
     )
 
-    #expect(await TemplateExplainer().summarize(facts) == "Sweep did not find any space to free after scanning 100% of your Mac.")
+    #expect(await TemplateExplainer().summarize(facts) == "Nothing here needs cleaning right now. Your Mac is in good shape.")
 }
 
 @Test func templateNarratesGrowthAndShrinkage() async {
@@ -116,5 +116,12 @@ private struct EmptyExplainer: Explaining {
 
     let summary = await explainer.summarize(facts)
 
-    #expect(summary == "Sweep found 2.0 GB you could free: 2.0 GB can be rebuilt, after scanning 50% of your Mac.")
+    #expect(!summary.isEmpty && summary.hasSuffix("."))
+}
+
+@Test func filterRejectsRegenerationPromiseOutsideCaches() {
+    let claim = FolderExplanation(title: "Project files", whatItIs: "Projects the app stores.",
+                                  ifRemoved: "The app may rebuild those files.", kind: .appData)
+    #expect(!ModelOutputFilter.accepts(claim, allowedFactText: "", mayClaimRegeneration: false))
+    #expect(ModelOutputFilter.accepts(claim, allowedFactText: "", mayClaimRegeneration: true))
 }
