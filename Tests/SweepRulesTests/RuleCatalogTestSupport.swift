@@ -9,7 +9,11 @@ final class CatalogFakeFacts: SystemFacts, @unchecked Sendable {
     let hasDeveloperTools = true
     private let installed: Set<String>
     private let running: Set<String>
+    private let runningNames: Set<String>
     private let opened: [String: Date]
+    private let added: [String: Date]
+    private let appNames: [String]
+    private let applicationBundleIDs: [String: String]
     private let repositories: [GitState]
 
     init(
@@ -18,7 +22,11 @@ final class CatalogFakeFacts: SystemFacts, @unchecked Sendable {
         spotlightWorks: Bool = true,
         installed: Set<String> = [],
         running: Set<String> = [],
+        runningNames: Set<String> = [],
         opened: [String: Date] = [:],
+        added: [String: Date] = [:],
+        appNames: [String] = [],
+        applicationBundleIDs: [String: String] = [:],
         repositories: [GitState] = []
     ) {
         self.homeDirectory = home
@@ -26,13 +34,25 @@ final class CatalogFakeFacts: SystemFacts, @unchecked Sendable {
         self.spotlightWorks = spotlightWorks
         self.installed = installed
         self.running = running
+        self.runningNames = runningNames
         self.opened = opened
+        self.added = added
+        self.appNames = appNames
+        self.applicationBundleIDs = applicationBundleIDs
         self.repositories = repositories
     }
 
     func isInstalled(bundleID: String) -> Bool { installed.contains(bundleID) }
     func isRunning(bundleID: String) -> Bool { running.contains(bundleID) }
+    func isRunning(appNamed: String) -> Bool {
+        runningNames.contains { $0.caseInsensitiveCompare(appNamed) == .orderedSame }
+    }
+    func bundleIdentifier(forApplicationAt path: String) -> String? {
+        applicationBundleIDs[path]
+    }
+    var installedApplicationNames: [String] { appNames }
     func lastOpened(path: String) -> Date? { opened[path] }
+    func dateAdded(path: String) -> Date? { added[path] }
     func gitState(repoContaining path: String) -> GitState? {
         repositories
             .filter { path == $0.root || path.hasPrefix($0.root + "/") }
@@ -95,14 +115,17 @@ let catalogFixtureCases: [RuleFixtureCase] = [
     .init(ruleID: "generic.library-caches", relativePath: "Library/Caches/com.example.Widget", bucket: .rebuilds),
     .init(ruleID: "generic.application-support-caches", relativePath: "Library/Application Support/com.example.Unknown/Code Cache", bucket: .rebuilds),
     .init(ruleID: "generic.container-caches", relativePath: "Library/Containers/com.example.Widget/Data/Library/Caches", bucket: .rebuilds),
-    .init(ruleID: "generic.orphan-application-support", relativePath: "Library/Application Support/com.example.Removed", bucket: .rebuilds),
-    .init(ruleID: "generic.orphan-container", relativePath: "Library/Containers/com.example.Removed", bucket: .rebuilds),
-    .init(ruleID: "generic.orphan-group-container", relativePath: "Library/Group Containers/group.com.tinyspeck.slackmacgap", bucket: .rebuilds),
-    .init(ruleID: "generic.orphan-saved-state", relativePath: "Library/Saved Application State/com.example.Removed.savedState", bucket: .rebuilds),
-    .init(ruleID: "generic.orphan-preference", relativePath: "Library/Preferences/com.example.Removed.plist", bucket: .rebuilds, directory: false),
+    .init(ruleID: "generic.orphan-application-support", relativePath: "Library/Application Support/com.example.Removed", bucket: .review),
+    .init(ruleID: "generic.orphan-container", relativePath: "Library/Containers/com.example.Removed", bucket: .review),
+    .init(ruleID: "generic.orphan-group-container", relativePath: "Library/Group Containers/group.com.tinyspeck.slackmacgap", bucket: .review),
+    .init(ruleID: "generic.orphan-saved-state", relativePath: "Library/Saved Application State/com.example.Removed.savedState", bucket: .review),
+    .init(ruleID: "generic.orphan-preference", relativePath: "Library/Preferences/com.example.Removed.plist", bucket: .review, directory: false),
     .init(ruleID: "generic.logs", relativePath: "Library/Logs/OldApp", bucket: .review),
     .init(ruleID: "generic.trash", relativePath: ".Trash/old-download.dmg", bucket: .review),
     .init(ruleID: "generic.compressed-copy", relativePath: "Downloads/model.bin.zst", bucket: .rebuilds, directory: false, companions: ["Downloads/model.bin"]),
+    .init(ruleID: "generic.unused-apps", relativePath: "Applications/Old App.app", bucket: .review),
+    .init(ruleID: "generic.installers", relativePath: "Downloads/Cursor-darwin-arm64.dmg", bucket: .review, directory: false),
+    .init(ruleID: "generic.downloads-never-opened", relativePath: "Downloads/forgotten.pdf", bucket: .review, directory: false),
     .init(ruleID: "yours.large-old-files", relativePath: "Movies/old-recording.mov", bucket: .yours, directory: false, size: 1_073_741_824),
     .init(ruleID: "yours.screenshots-recordings", relativePath: "Desktop/Screenshot 2025-01-02.png", bucket: .yours, directory: false),
     .init(ruleID: "yours.secret-looking-names", relativePath: "Documents/id_rsa", bucket: .yours, directory: false),

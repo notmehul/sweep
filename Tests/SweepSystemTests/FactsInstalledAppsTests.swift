@@ -1,4 +1,5 @@
 import Foundation
+import SweepCore
 import Testing
 @testable import SweepSystem
 
@@ -48,6 +49,57 @@ import Testing
     #expect(!facts.isInstalled(bundleID: "com.example.missing"))
     #expect(facts.isRunning(bundleID: "com.example.running"))
     #expect(!facts.isRunning(bundleID: "com.example.snapshot"))
+}
+
+@Test func macFactsTreatsLaunchServicesAndRunningAppsAsInstalled() throws {
+    let fixture = try FactsFixture()
+    defer { fixture.remove() }
+    let launchServicesURL = fixture.root.appendingPathComponent("Elsewhere/Helper.app")
+    let facts = MacFacts(
+        homeDirectory: fixture.root.path,
+        applicationRoots: [],
+        spotlight: Spotlight(timeout: 0.1, applicationScope: fixture.root.path),
+        runningBundleIDs: ["com.example.running-helper"],
+        applicationURLResolver: {
+            $0 == "com.example.launch-services" ? launchServicesURL : nil
+        }
+    )
+
+    #expect(facts.isInstalled(bundleID: "com.example.launch-services"))
+    #expect(facts.isInstalled(bundleID: "com.example.running-helper"))
+    #expect(!facts.isInstalled(bundleID: "com.example.absent"))
+
+    let orphanRule = Rule(
+        id: "generic.orphan-container",
+        match: RuleMatch(
+            regex: "^Library/Containers/[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)+$"
+        ),
+        conditions: RuleConditions(appNotInstalled: "owner"),
+        bucket: .review,
+        action: .trash,
+        group: "Files left by removed apps",
+        title: "App files",
+        explain: RuleExplanation(
+            whatItIs: "App files.",
+            ifRemoved: "They move to the Trash.",
+            whyStale: "The app is absent."
+        ),
+        unit: true
+    )
+    let item = ScannedItem(
+        path: fixture.root.appendingPathComponent(
+            "Library/Containers/com.example.launch-services"
+        ).path,
+        isDirectory: true,
+        logicalSize: 1,
+        allocatedSize: 1,
+        reclaimableSize: 1,
+        fileCount: 1,
+        fileID: 1,
+        device: 1,
+        modified: facts.now
+    )
+    #expect(RuleEngine(rules: [orphanRule], facts: facts).classify([item]).isEmpty)
 }
 
 @Test func personaFindsNodeOnlyInPathDirectories() throws {

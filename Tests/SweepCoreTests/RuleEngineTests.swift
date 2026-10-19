@@ -248,6 +248,46 @@ import Testing
     #expect(finding.evidence == [.coveredByIgnore])
 }
 
+@Test func duplicateClassificationKeepsNonDownloadThenOldestCopy() throws {
+    let fixture = try TemporaryFixture()
+    defer { fixture.remove() }
+    let old = Date(timeIntervalSince1970: 1_000)
+    let new = Date(timeIntervalSince1970: 2_000)
+    let document = fixture.item("Documents/report.pdf", directory: false, modified: new)
+    let oldDownload = fixture.item("Downloads/report-old.pdf", directory: false, modified: old)
+    let newDownload = fixture.item("Downloads/report-copy.pdf", directory: false, modified: new)
+    let engine = RuleEngine(rules: [], facts: FakeFacts(home: fixture.root.path))
+
+    let findings = engine.classifyDuplicates([[newDownload, oldDownload, document]])
+
+    #expect(findings.count == 2)
+    #expect(findings.allSatisfy { $0.bucket == .review && $0.action == .trash })
+    #expect(findings.allSatisfy { $0.group == "Duplicates" })
+    #expect(findings.allSatisfy { $0.evidence == [.duplicateOf(document.path)] })
+    #expect(!findings.contains { $0.items.contains(document) })
+}
+
+@Test func screenshotGroupsUseMonthInTitle() throws {
+    let fixture = try TemporaryFixture()
+    defer { fixture.remove() }
+    let march = Date(timeIntervalSince1970: 1_772_323_200)
+    let rule = testRule(
+        id: "yours.screenshots-recordings",
+        match: RuleMatch(pathGlob: "Desktop/*.png"),
+        bucket: .yours,
+        unit: false
+    )
+    let engine = RuleEngine(rules: [rule], facts: FakeFacts(home: fixture.root.path))
+
+    let finding = try #require(engine.classify([
+        fixture.item("Desktop/Screenshot 1.png", directory: false, modified: march),
+        fixture.item("Desktop/Screenshot 2.png", directory: false, modified: march),
+    ]).first)
+
+    #expect(finding.title == "Screenshots from March 2026")
+    #expect(finding.items.count == 2)
+}
+
 private func runGit(_ arguments: [String], in directory: URL) throws {
     let process = Process()
     process.executableURL = URL(fileURLWithPath: "/usr/bin/git")

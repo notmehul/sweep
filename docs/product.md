@@ -43,7 +43,7 @@ The app is one window that moves through five screens.
 | Rebuilds itself | ticked | delete | App caches (`~/Library/Caches/*`, app `Cache`/`Code Cache`/`GPUCache` folders, the `Caches` folders inside app containers); data left behind by deleted apps; developer clutter in projects untouched for 30+ days (whatever `.gitignore` covers, plus `node_modules`, `.venv`, `build`, `dist*`); old tool versions the active symlink doesn't point to (keep the current one plus one); package caches, cleaned with the tool's own command |
 | Probably don't need | unticked | move to Trash | Apps not opened in 6+ months (size includes the app's data); installers for apps already installed; downloads never opened; duplicates confirmed by hash; old copies next to new ones (two Xcodes, old app copies, old Node/Python versions, iPhone backups, IPSW update files); what's already in the Trash |
 | Your call | no checkbox | Show in Finder | Big files not opened in a year; screenshots and recordings grouped by month; files whose names suggest secrets (warning only) |
-| Don't touch | hidden | none | Repos with uncommitted changes or no remote, live app databases (`state.vscdb`, chat histories), active browser profiles, Chromium `Partitions/`, anything outside `$HOME` |
+| Don't touch | hidden | none | Repos with uncommitted changes or no remote, live app databases (`state.vscdb`, chat histories), active browser profiles, Chromium `Partitions/`, anything outside `$HOME` except a user-owned top-level `/Applications/*.app` selected for removal |
 
 **Fitting the person:** developer groups appear only when developer tools are present (Xcode, Homebrew, Node, or git from the Command Line Tools).
 

@@ -138,4 +138,8 @@ public enum RunningApps {
     public static func bundleIDs() -> Set<String> {
         Set(NSWorkspace.shared.runningApplications.compactMap(\.bundleIdentifier))
     }
+
+    public static func localizedNames() -> Set<String> {
+        Set(NSWorkspace.shared.runningApplications.compactMap(\.localizedName))
+    }
 }

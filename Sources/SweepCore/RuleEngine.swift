@@ -16,12 +16,13 @@ public final class RuleEngine: Sendable {
             .map(CompiledRule.init)
     }
 
-    /// A path-only hot path for the walker. Conditions are deliberately checked later,
-    /// after the walker has measured the directory as one item.
+    /// A path-only hot path for the walker. Directories are claimed only by unit rules;
+    /// matching file rules are also reported even when the file is below the walker's
+    /// normal large-file threshold. Conditions are checked again after measurement.
     public func claimsAsUnit(path: String, isDirectory: Bool) -> Bool {
-        guard isDirectory, let relative = relativePath(path) else { return false }
+        guard let relative = relativePath(path) else { return false }
         return rules.contains { compiled in
-            guard compiled.rule.unit else { return false }
+            guard compiled.rule.unit == isDirectory else { return false }
             let owner = owner(for: relative)
             return compiled.pathMatches(relative: relative, owner: owner)
                 && unitConditionsAllow(compiled.rule, owner: owner)
@@ -70,12 +71,63 @@ public final class RuleEngine: Sendable {
         return groupMonthlyPersonalFiles(findings)
     }
 
+    /// Turns hash-confirmed duplicate groups into review findings. The copy outside
+    /// Downloads is preferred; otherwise the oldest copy is kept.
+    public func classifyDuplicates(_ groups: [[ScannedItem]]) -> [Finding] {
+        groups.flatMap { group -> [Finding] in
+            let unique = Dictionary(
+                group.map { (Self.cleanPath($0.path), $0) },
+                uniquingKeysWith: { first, _ in first }
+            ).values
+            guard unique.count > 1 else { return [] }
+            let sorted = unique.sorted { left, right in
+                let leftInDownloads = isInDownloads(left.path)
+                let rightInDownloads = isInDownloads(right.path)
+                if leftInDownloads != rightInDownloads { return !leftInDownloads }
+                if left.modified != right.modified { return left.modified < right.modified }
+                return left.path < right.path
+            }
+            guard let kept = sorted.first else { return [] }
+            return sorted.dropFirst().map { duplicate in
+                Finding(
+                    id: "generic.duplicates:\(duplicate.path)",
+                    ruleID: "generic.duplicates",
+                    title: URL(fileURLWithPath: duplicate.path).lastPathComponent,
+                    group: "Duplicates",
+                    bucket: .review,
+                    items: [duplicate],
+                    evidence: [.duplicateOf(kept.path)],
+                    lastUsed: LastUsed(date: duplicate.modified, source: .mtime),
+                    action: .trash,
+                    explanation: Explanation(
+                        whatItIs: "This file is an exact copy of another file.",
+                        ifRemoved: "The copy at \(kept.path) stays in place.",
+                        whyStale: "Sweep compared both files and confirmed that their contents match."
+                    ),
+                    isDeveloper: false
+                )
+            }
+        }.sorted { $0.id < $1.id }
+    }
+
     /// Presentation state is kept separate so `Finding` remains the safety contract.
     public func presentation(for finding: Finding) -> FindingPresentation {
         let requiresSpotlight = rules.first { $0.rule.id == finding.ruleID }?
             .rule.conditions.requiresSpotlight == true
-        let spotlightEvidenceComplete = facts.spotlightWorks
-            && finding.items.allSatisfy { facts.lastOpened(path: $0.path) != nil }
+        let spotlightEvidenceComplete: Bool
+        switch finding.ruleID {
+        case "generic.downloads-never-opened":
+            spotlightEvidenceComplete = facts.spotlightWorks && finding.items.allSatisfy {
+                facts.dateAdded(path: $0.path) != nil && facts.lastOpened(path: $0.path) == nil
+            }
+        case "generic.unused-apps":
+            spotlightEvidenceComplete = facts.spotlightWorks && finding.items.allSatisfy {
+                facts.lastOpened(path: $0.path) != nil || facts.dateAdded(path: $0.path) != nil
+            }
+        default:
+            spotlightEvidenceComplete = facts.spotlightWorks
+                && finding.items.allSatisfy { facts.lastOpened(path: $0.path) != nil }
+        }
         return FindingPresentation(
             finding: finding,
             evidenceComplete: !requiresSpotlight || spotlightEvidenceComplete
@@ -121,11 +173,30 @@ public final class RuleEngine: Sendable {
            item.reclaimableSize < 500 * 1_024 * 1_024 {
             return false
         }
+        if compiled.rule.id.hasPrefix("generic.orphan-"),
+           owner?.lowercased().hasPrefix("com.apple.") == true {
+            return false
+        }
+        if compiled.rule.id == "generic.unused-apps" {
+            let bundleID = facts.bundleIdentifier(forApplicationAt: item.path)
+            if bundleID?.lowercased().hasPrefix("com.apple.") == true { return false }
+            if let bundleID, facts.isRunning(bundleID: bundleID) { return false }
+            let name = URL(fileURLWithPath: item.path).deletingPathExtension().lastPathComponent
+            if facts.isRunning(appNamed: name) { return false }
+        }
+        if compiled.rule.id == "generic.installers",
+           matchedInstalledAppName(forInstallerAt: item.path) == nil {
+            return false
+        }
         return true
     }
 
     private func unitConditionsAllow(_ rule: Rule, owner: String?) -> Bool {
         if rule.match.parentMarker != nil || rule.match.gitignored != nil {
+            return false
+        }
+        if rule.id.hasPrefix("generic.orphan-"),
+           owner?.lowercased().hasPrefix("com.apple.") == true {
             return false
         }
         func bundleID(_ value: String) -> String? {
@@ -159,6 +230,43 @@ public final class RuleEngine: Sendable {
         var evidence: [Evidence] = []
         let bundle = { (value: String) -> String? in
             value == "owner" ? owner : value
+        }
+
+        if rule.id == "generic.unused-apps" {
+            let opened = facts.lastOpened(path: item.path)
+            guard let relevantDate = opened ?? facts.dateAdded(path: item.path) else { return nil }
+            let days = ageInDays(since: relevantDate)
+            guard days >= (rule.conditions.minAgeDays ?? 180) else { return nil }
+            if opened == nil { evidence.append(.neverOpened) }
+            evidence.append(.staleDays(days))
+            return ConditionResult(
+                evidence: evidence,
+                lastUsed: LastUsed(date: opened, source: .spotlight)
+            )
+        }
+
+        if rule.id == "generic.downloads-never-opened" {
+            guard facts.lastOpened(path: item.path) == nil,
+                  let added = facts.dateAdded(path: item.path)
+            else {
+                return nil
+            }
+            let days = ageInDays(since: added)
+            guard days >= (rule.conditions.minAgeDays ?? 60) else { return nil }
+            return ConditionResult(
+                evidence: [.neverOpened, .staleDays(days)],
+                lastUsed: LastUsed(date: nil, source: .spotlight)
+            )
+        }
+
+        if rule.id == "generic.installers" {
+            guard let appName = matchedInstalledAppName(forInstallerAt: item.path) else {
+                return nil
+            }
+            return ConditionResult(
+                evidence: [.installerForInstalledApp(appName)],
+                lastUsed: LastUsed(date: item.modified, source: .mtime)
+            )
         }
 
         if let installed = rule.conditions.appInstalled {
@@ -206,8 +314,7 @@ public final class RuleEngine: Sendable {
 
         if let minimum = rule.conditions.minAgeDays {
             guard let date = lastUsed.date else { return nil }
-            let days = max(0, Calendar(identifier: .gregorian)
-                .dateComponents([.day], from: date, to: facts.now).day ?? 0)
+            let days = ageInDays(since: date)
             guard days >= minimum else { return nil }
             evidence.append(.staleDays(days))
         }
@@ -217,6 +324,7 @@ public final class RuleEngine: Sendable {
 
     private func guardFinding(for item: ScannedItem) -> Finding? {
         guard let relative = relativePath(item.path) else {
+            if isAllowedApplicationCandidate(item.path) { return nil }
             return makeGuardFinding(
                 id: "guard.outside-home",
                 title: "Outside your home folder",
@@ -348,10 +456,15 @@ public final class RuleEngine: Sendable {
         for (month, values) in grouped {
             guard let first = values.first else { continue }
             let items = values.flatMap(\.items).sorted { $0.path < $1.path }
+            let date = first.lastUsed?.date ?? first.items[0].modified
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.calendar = Calendar(identifier: .gregorian)
+            formatter.dateFormat = "MMMM yyyy"
             ordinary.append(Finding(
                 id: "\(first.ruleID):\(month)",
                 ruleID: first.ruleID,
-                title: first.title,
+                title: "Screenshots from \(formatter.string(from: date))",
                 group: first.group,
                 bucket: first.bucket,
                 items: items,
@@ -394,8 +507,13 @@ public final class RuleEngine: Sendable {
     private func relativePath(_ path: String) -> String? {
         let clean = Self.cleanPath(path)
         if clean == home { return "" }
-        guard clean.hasPrefix(home + "/") else { return nil }
-        return String(clean.dropFirst(home.count + 1))
+        if clean.hasPrefix(home + "/") {
+            return String(clean.dropFirst(home.count + 1))
+        }
+        if isAllowedApplicationCandidate(clean) {
+            return "Applications/\(URL(fileURLWithPath: clean).lastPathComponent)"
+        }
+        return nil
     }
 
     private func owner(for relative: String) -> String? {
@@ -473,7 +591,48 @@ public final class RuleEngine: Sendable {
         ]
         if let owner, let name = names[owner] { return name }
         if let owner { return owner.split(separator: ".").last.map(String.init) ?? owner }
-        return URL(fileURLWithPath: path).lastPathComponent
+        let url = URL(fileURLWithPath: path)
+        return url.pathExtension.lowercased() == "app"
+            ? url.deletingPathExtension().lastPathComponent
+            : url.lastPathComponent
+    }
+
+    private func ageInDays(since date: Date) -> Int {
+        max(0, Calendar(identifier: .gregorian)
+            .dateComponents([.day], from: date, to: facts.now).day ?? 0)
+    }
+
+    private func isInDownloads(_ path: String) -> Bool {
+        let downloads = (home as NSString).appendingPathComponent("Downloads")
+        let clean = Self.cleanPath(path)
+        return clean == downloads || clean.hasPrefix(downloads + "/")
+    }
+
+    private func isAllowedApplicationCandidate(_ path: String) -> Bool {
+        let clean = Self.cleanPath(path)
+        let parent = URL(fileURLWithPath: clean).deletingLastPathComponent().path
+        let name = URL(fileURLWithPath: clean).lastPathComponent
+        guard name.lowercased().hasSuffix(".app"), !name.dropLast(4).isEmpty else {
+            return false
+        }
+        return parent == "/Applications"
+            || parent == (home as NSString).appendingPathComponent("Applications")
+    }
+
+    private func matchedInstalledAppName(forInstallerAt path: String) -> String? {
+        let base = URL(fileURLWithPath: path).deletingPathExtension().lastPathComponent
+        let installerTokens = Self.nameTokens(base)
+        guard !installerTokens.isEmpty else { return nil }
+        return facts.installedApplicationNames
+            .sorted { $0.localizedStandardCompare($1) == .orderedAscending }
+            .first { name in
+                let appTokens = Self.nameTokens(name)
+                return !appTokens.isEmpty && appTokens.allSatisfy(installerTokens.contains)
+            }
+    }
+
+    private static func nameTokens(_ value: String) -> Set<String> {
+        Set(value.lowercased().split { !$0.isLetter && !$0.isNumber }.map(String.init))
     }
 
     private func isGitIgnored(_ path: String) -> Bool {

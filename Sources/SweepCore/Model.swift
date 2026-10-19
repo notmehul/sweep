@@ -144,12 +144,27 @@ public protocol SystemFacts: Sendable {
     var now: Date { get }
     func isInstalled(bundleID: String) -> Bool
     func isRunning(bundleID: String) -> Bool
+    func isRunning(appNamed: String) -> Bool
+    /// Bundle metadata for an application candidate, when known.
+    func bundleIdentifier(forApplicationAt path: String) -> String?
+    /// Names of applications known to Launch Services or the installed-app scan.
+    var installedApplicationNames: [String] { get }
     /// Spotlight last-opened date for a path, nil when unknown or Spotlight unavailable.
     func lastOpened(path: String) -> Date?
+    /// Spotlight date-added metadata, used only where install/download age is required.
+    func dateAdded(path: String) -> Date?
     var spotlightWorks: Bool { get }
     /// nil when git (Command Line Tools) is not installed or path is not in a repo.
     func gitState(repoContaining path: String) -> GitState?
     var hasDeveloperTools: Bool { get }
+}
+
+/// Additive defaults keep small test and platform fakes source-compatible.
+public extension SystemFacts {
+    func isRunning(appNamed: String) -> Bool { false }
+    func bundleIdentifier(forApplicationAt path: String) -> String? { nil }
+    var installedApplicationNames: [String] { [] }
+    func dateAdded(path: String) -> Date? { nil }
 }
 
 public struct GitState: Sendable, Hashable {
