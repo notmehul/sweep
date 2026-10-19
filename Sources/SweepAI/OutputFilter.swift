@@ -34,38 +34,35 @@ enum ModelOutputFilter {
             .allSatisfy { accepts($0, allowedFactText: allowedFactText) }
     }
 
+    /// Words about what removal does. The bucket subtitle leaves that to Sweep's fixed sentence.
+    private static let consequenceWords = ["remov", "delet", "lose", "lost", "erase", "gone", "trash"]
+
+    /// The bucket screen's subtitle: one sentence describing the space, with numbers from the
+    /// facts and nothing about consequences or regeneration.
+    static func acceptsBucketSummary(_ text: String, allowedFactText: String) -> Bool {
+        let lowercased = text.lowercased()
+        guard !(regenerationClaims + consequenceWords).contains(where: lowercased.contains) else { return false }
+        return acceptsSentence(text, allowedFactText: allowedFactText)
+    }
+
     static func acceptsSentence(_ text: String, allowedFactText: String) -> Bool {
         isOneSentence(text) && accepts(text, allowedFactText: allowedFactText)
     }
 
-    /// Sentence count, ignoring decimal points like "9.1 GB".
+    /// Sentence count. A full stop only ends a sentence before a space or the end, so "9.1 GB"
+    /// and "setup.dmg" don't split one.
     static func sentenceCount(_ text: String) -> Int {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let last = trimmed.last, ".!?".contains(last) else { return 0 }
         let characters = Array(trimmed)
-        var count = 0
-        for index in characters.indices where ".!?".contains(characters[index]) {
-            let isDecimalPoint = characters[index] == "."
-                && index > characters.startIndex && index + 1 < characters.endIndex
-                && characters[index - 1].isNumber && characters[index + 1].isNumber
-            if !isDecimalPoint { count += 1 }
-        }
-        return count
+        return characters.indices.filter { index in
+            ".!?".contains(characters[index])
+                && (index + 1 == characters.endIndex || characters[index + 1].isWhitespace)
+        }.count
     }
 
     private static func isOneSentence(_ text: String) -> Bool {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let last = trimmed.last, ".!?".contains(last) else { return false }
-        let characters = Array(trimmed)
-        for index in characters.indices.dropLast() where ".!?".contains(characters[index]) {
-            let isDecimalPoint = characters[index] == "."
-                && index > characters.startIndex
-                && characters.index(after: index) < characters.endIndex
-                && characters[characters.index(before: index)].isNumber
-                && characters[characters.index(after: index)].isNumber
-            if !isDecimalPoint { return false }
-        }
-        return true
+        sentenceCount(text) == 1
     }
 
     private static func numbers(in text: String) -> Set<String> {
