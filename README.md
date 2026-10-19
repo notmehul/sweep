@@ -14,6 +14,15 @@ Click any part of the chart and Apple's on-device model explains what that folde
 
 > Status: early. It works end to end on the author's Mac; the rules are being checked on more Macs. See [docs/status.md](docs/status.md).
 
+## Install
+
+1. Download [**Sweep.dmg**](https://github.com/notmehul/sweep/releases/latest/download/Sweep.dmg), open it, and drag Sweep into Applications.
+2. Open Sweep. macOS will say it can't check it for malware, because this build isn't notarized by Apple yet. Click **Done**.
+3. Open **System Settings → Privacy & Security**, scroll to "Sweep was blocked", and click **Open Anyway**. You only do this once.
+4. When Sweep asks, allow **Full Disk Access** so it can see app data in your Library.
+
+Needs macOS 26 or later on an Apple Silicon Mac. Every release is listed on the [releases page](https://github.com/notmehul/sweep/releases).
+
 ## Build from source
 
 Requires macOS 26+ on Apple Silicon and the Command Line Tools (`xcode-select --install`). Xcode isn't needed.
