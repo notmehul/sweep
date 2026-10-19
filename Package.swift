@@ -15,10 +15,23 @@ let package = Package(
     ],
     targets: [
         .target(name: "SweepCore"),
-        .executableTarget(name: "SweepApp", dependencies: ["SweepCore"]),
+        .target(name: "CAttrBulk"),
+        .target(name: "SweepSystem", dependencies: ["SweepCore", "CAttrBulk"]),
+        .target(name: "SweepRules", dependencies: ["SweepCore"], resources: [.copy("Resources/rules")]),
+        .executableTarget(name: "SweepApp", dependencies: ["SweepCore", "SweepSystem", "SweepRules"]),
         .testTarget(
             name: "SweepCoreTests",
             dependencies: ["SweepCore"],
+            swiftSettings: testingPluginPath
+        ),
+        .testTarget(
+            name: "SweepSystemTests",
+            dependencies: ["SweepSystem", "SweepCore"],
+            swiftSettings: testingPluginPath
+        ),
+        .testTarget(
+            name: "SweepRulesTests",
+            dependencies: ["SweepRules", "SweepCore"],
             swiftSettings: testingPluginPath
         ),
     ]
