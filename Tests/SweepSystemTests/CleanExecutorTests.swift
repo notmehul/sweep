@@ -123,6 +123,37 @@ private func executorFinding(
     #expect(try fixture.store.lastCleanup()?.entries.first?.undone == true)
 }
 
+@Test func executorUndoesRequestedCleanupInsteadOfNewest() async throws {
+    let fixture = try ExecutorFixture()
+    defer { fixture.remove() }
+    let first = try writeFixture(Data("first".utf8), named: "first.txt", in: fixture.home)
+    let second = try writeFixture(Data("second".utf8), named: "second.txt", in: fixture.home)
+    let executor = CleanupExecutor(
+        store: fixture.store,
+        facts: ExecutorFacts(homeDirectory: fixture.home.path),
+        toolCommands: ToolCommands(availableExecutables: [:])
+    )
+
+    let firstReport = await executor.clean([
+        executorFinding(item: try scannedItem(at: first), bucket: .review, action: .trash),
+    ])
+    let secondReport = await executor.clean([
+        executorFinding(item: try scannedItem(at: second), bucket: .review, action: .trash),
+    ])
+    let firstID = try #require(firstReport.cleanupID)
+    let secondID = try #require(secondReport.cleanupID)
+    let secondTrash = try #require(
+        fixture.store.cleanups(limit: 2).first(where: { $0.id == secondID })?.entries.first?.trashURL
+    )
+    defer { try? FileManager.default.removeItem(at: secondTrash) }
+
+    #expect(await executor.undo(cleanupID: firstID))
+    #expect(try String(contentsOf: first, encoding: .utf8) == "first")
+    #expect(FileManager.default.fileExists(atPath: second.path) == false)
+    #expect(try fixture.store.cleanups(limit: 2)
+        .first(where: { $0.id == firstID })?.entries.first?.undone == true)
+}
+
 @Test func executorReportsSafetyGateSkipReason() async throws {
     let fixture = try ExecutorFixture()
     defer { fixture.remove() }

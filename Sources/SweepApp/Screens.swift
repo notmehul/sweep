@@ -17,6 +17,7 @@ struct RootView: View {
                 case .bucket(let bucket): BucketScreen(model: model, bucket: bucket)
                 case .cleaning: CleaningScreen()
                 case .done: DoneScreen(model: model)
+                case .history: HistoryScreen(model: model)
                 }
             }
             .transition(reduceMotion ? .opacity : .opacity.combined(with: .offset(y: 8)))
@@ -250,6 +251,8 @@ struct ResultsScreen: View {
 
                     HStack(spacing: 8) {
                         Button("Scan again") { model.startScan() }
+                            .buttonStyle(QuietButtonStyle())
+                        Button("History") { model.showHistory() }
                             .buttonStyle(QuietButtonStyle())
                         Spacer()
                         Button(model.selectedBytes > 0 ? "Free \(Format.bytes(model.selectedBytes))…" : "Nothing selected") {
