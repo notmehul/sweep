@@ -29,6 +29,7 @@ struct RootView: View {
         .onAppear {
             // Dev aid: SWEEP_AUTOSCAN=1 starts a scan on launch, for screenshots without focus.
             if ProcessInfo.processInfo.environment["SWEEP_AUTOSCAN"] == "1", model.screen == .welcome { model.startScan() }
+            if ProcessInfo.processInfo.environment["SWEEP_SCREEN"] == "history" { model.showHistory() }
         }
     }
 

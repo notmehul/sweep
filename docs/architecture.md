@@ -4,16 +4,15 @@ Sweep is a SwiftPM package built with the Command Line Tools alone. `scripts/bun
 
 ## Modules
 
-Modules marked *planned* don't exist yet. Create each one when its milestone starts (see `status.md`), and add its target to `Package.swift` at the same time.
 
 | Target | Responsibility | Depends on |
 |---|---|---|
 | `SweepCore` | Model types, rule engine, classifier, safety gate. No AppKit. **The only place a `Finding` or `Bucket` is created.** | none |
-| `CAttrBulk` *(planned, P1)* | C wrapper around the `getattrlistbulk` loop. Returns allocated size, `ATTR_CMNEXT_PRIVATESIZE`, `EXT_FLAGS`, `CLONEID`, `FILEID` and object type. | none |
-| `SweepSystem` *(planned, P1)* | Adapters to macOS: `Walker` (emits `AsyncStream<ScanProgress>`), Spotlight (scoped `MDQuery`), InstalledApps, RunningApps, Git, Simctl, Trash, FDAProbe, VolumeInfo/`tmutil` | Core, CAttrBulk |
-| `SweepRules` *(planned, P1)* | `Resources/rules/{generic,apps,dev}/*.json`, `schema.json` and the loader | Core |
-| `SweepStore` *(planned, P2)* | SQLite3: snapshots, findings, decisions (keep/ignore), history (for undo) | Core |
-| `SweepAI` *(planned, P4)* | FoundationModels behind the `Explaining` protocol; hand-written `Generable` types; Tools for "Ask about my Mac" | Core |
+| `CAttrBulk` | C wrapper around the `getattrlistbulk` loop. Returns allocated size, `ATTR_CMNEXT_PRIVATESIZE`, `EXT_FLAGS`, `CLONEID`, `FILEID` and object type. | none |
+| `SweepSystem` | Adapters to macOS: `Walker` (emits `AsyncStream<WalkEvent>`: progress, items, finished folders), `CandidateCollector` (apps, Spotlight downloads/screenshots, secrets, duplicates), `CleanupExecutor`, Spotlight (scoped `MDQuery`), InstalledApps, RunningApps, Git, Simctl, Trash, FDAProbe, VolumeInfo/`tmutil` | Core, CAttrBulk |
+| `SweepRules` | `Resources/rules/{generic,apps,dev}/*.json`, `schema.json` and the loader | Core |
+| `SweepStore` | SQLite3: snapshots, findings, decisions (keep/ignore), history (for undo) | Core |
+| `SweepAI` | FoundationModels behind the `Explaining` protocol; hand-written `Generable` types; template fallback and an output filter that rejects "it comes back" claims outside caches | Core |
 | `SweepApp` | SwiftUI app. `AppModel` is an `@Observable` state machine: welcome → scanning → results → cleaning → done. | everything |
 
 ## Key types (SweepCore)

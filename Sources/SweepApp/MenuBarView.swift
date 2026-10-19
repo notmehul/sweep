@@ -33,6 +33,8 @@ struct MenuBarView: View {
             HStack(spacing: 6) {
                 Button("Open Sweep", action: openSweep)
                     .buttonStyle(QuietButtonStyle())
+                    .fixedSize()
+                    .padding(.leading, -14)
                 Spacer(minLength: 0)
                 Button("Scan now") {
                     model.startScan()

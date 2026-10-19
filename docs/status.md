@@ -1,21 +1,25 @@
 # Status
 
-**Current milestone:** P0, the toolchain spike. The repository was scaffolded on 19 Oct 2026.
+**As of 19 Oct 2026:** the app runs end to end on a real Mac: scan, results, review, clean, undo, history. What's left before sharing is signing, plus testing on friends' Macs.
 
 ## Milestones
 
-Each one ends in an app you open and click.
+| # | Scope | State |
+|---|---|---|
+| P0 | Toolchain spike | Done. Builds with the Command Line Tools only; the `@State` macro is worked around with `@ViewState`. |
+| P1 | Engine, scan screen, results | Done. A full home scan (1.4M files, about 180 GB) takes about 55 s in a release build. The sunburst grows live and colours what's cleanable. |
+| P2 | Bucket detail, item cards, keep/ignore, saved scans, export report | Done. Rows are grouped per app. Items under 1 MB are hidden. The export removes personal path parts. |
+| P3 | Clean, confirm, done, undo, history | Done. Verified on this Mac: the pip cache was deleted (61 MB measured against 60 MB predicted), and a real Trash round trip restored the file byte-identical. |
+| P4 | On-device AI | Partly done. The results summary and "what changed" sentence work, with a template fallback and a filter against "it comes back" claims. **Not wired in:** AI explanations for folders the rules don't recognise. |
+| P5 | Menu bar, icon, signing | The menu bar and icon are done. **Not started:** "Ask about my Mac", plus Developer ID signing and notarization, which need the paid account. |
 
-| # | Scope | Exit criteria | State |
-|---|---|---|---|
-| P0 | Toolchain spike | `swift test` passes. `scripts/run.sh` opens a signed `Sweep.app` window. That window shows a `Canvas` animation, plus the on-device model's availability and one hand-written `Generable` reply under `--options runtime`. | in progress: package, tests, signed bundle, Canvas animation and model availability verified 19 Oct; hand-written `Generable` reply still to do |
-| P1 | Engine + scan screen + results (read-only) | Golden fixture tests pass, and every known case in `rules.md` has a test. On this Mac: the sunburst grows live with real progress, a full home scan takes under 3 minutes, the totals are within 2% of `du -A`, and the three buckets are shown. | in progress: walker, system facts, candidate sources, rule engine, safety gate and fixture coverage implemented; full-scan performance and app wiring remain |
-| P2 | Bucket detail, item cards, keep/ignore, saved scans, export report | Decisions persist across relaunches. Two scans give the correct "what changed". Ten item cards checked by hand. | in progress: bucket detail, saved scans, decisions, scan changes and redacted JSON export implemented; hand-checking remains |
-| P3 | Clean, confirmation sheet, done screen, undo, history | Clean then undo restores fixtures. A real cleanup here frees the predicted amount. A running app blocks with "Quit X first". Then test on friends' Macs. | in progress: confirmation, safety-gated cleanup, done screen, per-cleanup undo and history implemented; real cleanup and friend testing remain |
-| P4 | On-device AI: headline, unknown-folder explanations, "what changed" | Fake-model tests pass. The app works fully with AI off. Live evals are gated on availability. | not started |
-| P5 | "Ask about my Mac", menu-bar view, icon, Developer ID and notarization | Notarized build opens on a clean Mac. | in progress: menu-bar view implemented; Ask, icon, Developer ID and notarization remain |
+## Known gaps
 
-## Open items
+- When launched in the background (`open -g`, or a login item), SwiftUI creates no window until the app is activated. Double-clicking is unaffected.
+- A first scan estimates progress, because the home folder's size isn't known yet. Later scans use the previous scan's total.
+- Rules have so far only been checked against one real Mac (a developer's). Run the opt-in `HomeReport` test on friends' Macs before trusting the rules for everyone.
 
-- A paid Developer ID account is needed before sharing with non-technical friends (P5).
-- The final name, the icon, and the visual style of the sunburst.
+## How to check a Mac without changing it
+
+- `SWEEP_HOME_REPORT=1 swift test -c release -Xswiftc -enable-testing --filter HomeReport` lists every finding, bucket and timing. It's read-only.
+- `SWEEP_REAL_TRASH=1 swift test --filter RealTrash` round-trips a file Sweep creates itself through the real Trash.

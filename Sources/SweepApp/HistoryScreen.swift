@@ -39,6 +39,7 @@ struct HistoryScreen: View {
                 }
                 .frame(maxWidth: 680)
                 .padding(.horizontal, 28)
+                .padding(.top, 20)
                 .padding(.bottom, 28)
             }
         }
@@ -87,6 +88,15 @@ private struct CleanupHistoryRow: View {
         cleanup.entries.reduce(0) { $0 + $1.bytes }
     }
 
+    /// "pip package cache, Slack cache and 3 more"
+    private var itemNames: String {
+        let titles = Array(NSOrderedSet(array: cleanup.entries.map(\.title))) as? [String] ?? []
+        guard let first = titles.first else { return "" }
+        if titles.count == 1 { return first }
+        if titles.count == 2 { return "\(first) and \(titles[1])" }
+        return "\(first), \(titles[1]) and \(titles.count - 2) more"
+    }
+
     var body: some View {
         HStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
@@ -96,6 +106,10 @@ private struct CleanupHistoryRow: View {
                 Text(summary)
                     .font(Theme.body)
                     .foregroundStyle(Theme.text)
+                Text(itemNames)
+                    .font(Theme.caption)
+                    .foregroundStyle(Theme.secondary)
+                    .lineLimit(2)
             }
             Spacer(minLength: 12)
             Text(Format.bytes(totalBytes))
