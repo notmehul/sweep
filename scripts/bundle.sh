@@ -12,6 +12,7 @@ rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 cp "$bin/Sweep" "$app/Contents/MacOS/Sweep"
 cp "$root/Resources/Info.plist" "$app/Contents/Info.plist"
+cp "$root/Resources/AppIcon.icns" "$app/Contents/Resources/AppIcon.icns"
 for b in "$bin"/*.bundle(N); do cp -R "$b" "$app/Contents/Resources/"; done
 
 # A stable identity keeps the Full Disk Access grant across rebuilds; ad-hoc loses it.
