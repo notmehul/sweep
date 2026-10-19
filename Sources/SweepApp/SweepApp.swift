@@ -36,8 +36,11 @@ struct SweepApp: App {
             }
         }
 
-        MenuBarExtra("Sweep", systemImage: "circle.dashed") {
+        MenuBarExtra {
             MenuBarView(model: model)
+        } label: {
+            Image(nsImage: MenuBarIcon.image)
+                .accessibilityLabel("Sweep")
         }
         .menuBarExtraStyle(.window)
     }

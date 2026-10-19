@@ -8,9 +8,10 @@ struct MenuBarView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 10) {
-                Image(systemName: "circle.dashed")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(Theme.accent)
+                Image(nsImage: NSApp.applicationIconImage)
+                    .resizable()
+                    .frame(width: 26, height: 26)
+                    .accessibilityHidden(true)
                 Text("Sweep")
                     .font(Theme.headline)
                     .foregroundStyle(Theme.text)
