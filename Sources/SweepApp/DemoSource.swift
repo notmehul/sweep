@@ -2,7 +2,7 @@ import Foundation
 import SweepCore
 
 /// Replays a believable scan without touching the disk. Used for UI work
-/// (`SWEEP_DEMO=1 scripts/run.sh`) and until the real engine is wired in.
+/// (`SWEEP_DEMO=1 scripts/run.sh`).
 struct DemoSource: ScanSource {
     var duration: TimeInterval = 7
 

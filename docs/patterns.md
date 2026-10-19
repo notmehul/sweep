@@ -17,7 +17,7 @@ The Command Line Tools ship no macro plugins for SwiftUI, SwiftData or Foundatio
   - Give it a static `generationSchema` built with `GenerationSchema(type:description:properties:)`.
   - Give it `init(_ content: GeneratedContent) throws`, reading fields with `content.value(_:forProperty:)`.
   - Use `DynamicGenerationSchema` for shapes known only at runtime.
-- **Previews** (instead of `#Preview`): launch the app with `SWEEP_FIXTURE_SNAPSHOT=<path.json>` to load a saved scan, so screens can be iterated on without rescanning.
+- **Previews** (instead of `#Preview`): launch with `SWEEP_DEMO=1` to replay sample data, so screens can be iterated on without rescanning.
 
 ## Tests
 
@@ -40,4 +40,5 @@ The Command Line Tools ship no macro plugins for SwiftUI, SwiftData or Foundatio
 - Dev aids:
   - `SWEEP_APPEARANCE=light|dark` pins the appearance for screenshots.
   - `SWEEP_AUTOSCAN=1` starts a scan on launch (with `open -g --env`), so no clicks are needed.
-  - The app currently runs on `DemoSource`/`DemoCleaner` sample data until the engine is wired in.
+  - `SWEEP_DEMO=1` replays sample data through `DemoSource`/`DemoCleaner` instead of the real engine.
+  - `SWEEP_SCREEN=history` opens the history screen; `SWEEP_INSPECT=<folder name>` opens that folder's card on the results screen.
