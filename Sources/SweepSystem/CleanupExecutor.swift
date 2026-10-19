@@ -281,6 +281,10 @@ public actor CleanupExecutor {
         undoLastDetailed().succeeded
     }
 
+    public func undo(cleanupID: String) async -> Bool {
+        undoDetailed(cleanupID: cleanupID).succeeded
+    }
+
     public func undoLastDetailed() -> UndoReport {
         let record: CleanupRecord
         do {
@@ -298,6 +302,30 @@ public actor CleanupExecutor {
             )
         }
 
+        return restore(record)
+    }
+
+    public func undoDetailed(cleanupID: String) -> UndoReport {
+        let record: CleanupRecord
+        do {
+            guard let match = try store.cleanups(limit: Int.max).first(where: { $0.id == cleanupID }) else {
+                return UndoReport(
+                    restoredCount: 0,
+                    failures: [UndoFailure(originalPath: "", reason: "This cleanup is no longer in history.")]
+                )
+            }
+            record = match
+        } catch {
+            return UndoReport(
+                restoredCount: 0,
+                failures: [UndoFailure(originalPath: "", reason: "Sweep couldn't read cleanup history.")]
+            )
+        }
+
+        return restore(record)
+    }
+
+    private func restore(_ record: CleanupRecord) -> UndoReport {
         var restored = 0
         var failures: [UndoFailure] = []
         for entry in record.entries where entry.action == "trash" && !entry.undone {

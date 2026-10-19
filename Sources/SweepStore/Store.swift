@@ -295,42 +295,58 @@ public final class Store: @unchecked Sendable {
     }
 
     public func lastCleanup() throws -> CleanupRecord? {
-        try queue.sync {
-            var cleanupID: String?
-            var date: Date?
-            try withStatement(
-                "SELECT cleanup_id, date FROM history ORDER BY date DESC, rowid DESC LIMIT 1"
-            ) { statement in
-                guard try stepRow(statement) else { return }
-                cleanupID = columnText(statement, 0)
-                date = Date(timeIntervalSince1970: sqlite3_column_double(statement, 1))
-            }
-            guard let cleanupID, let date else { return nil }
+        try cleanups(limit: 1).first
+    }
 
-            var entries: [CleanupHistoryEntry] = []
+    /// Completed cleanups, newest first.
+    public func cleanups(limit: Int) throws -> [CleanupRecord] {
+        guard limit > 0 else { return [] }
+        return try queue.sync {
+            var cleanupDates: [(id: String, date: Date)] = []
             try withStatement(
                 """
-                SELECT finding_id, title, action, original_path, trash_url, bytes, undone
-                FROM history WHERE cleanup_id = ? ORDER BY rowid
+                SELECT cleanup_id, MAX(date), MAX(rowid)
+                FROM history
+                GROUP BY cleanup_id
+                ORDER BY MAX(date) DESC, MAX(rowid) DESC
+                LIMIT ?
                 """
             ) { statement in
-                bind(cleanupID, at: 1, to: statement)
+                sqlite3_bind_int64(statement, 1, Int64(limit))
                 while try stepRow(statement) {
-                    let trashPath = columnOptionalText(statement, 4)
-                    entries.append(CleanupHistoryEntry(
-                        cleanupID: cleanupID,
-                        date: date,
-                        findingID: columnText(statement, 0),
-                        title: columnText(statement, 1),
-                        action: columnText(statement, 2),
-                        originalPath: columnText(statement, 3),
-                        trashURL: trashPath.map { URL(fileURLWithPath: $0) },
-                        bytes: sqlite3_column_int64(statement, 5),
-                        undone: sqlite3_column_int(statement, 6) != 0
+                    cleanupDates.append((
+                        id: columnText(statement, 0),
+                        date: Date(timeIntervalSince1970: sqlite3_column_double(statement, 1))
                     ))
                 }
             }
-            return CleanupRecord(id: cleanupID, date: date, entries: entries)
+
+            return try cleanupDates.map { cleanup in
+                var entries: [CleanupHistoryEntry] = []
+                try withStatement(
+                    """
+                    SELECT finding_id, title, action, original_path, trash_url, bytes, undone
+                    FROM history WHERE cleanup_id = ? ORDER BY rowid
+                    """
+                ) { statement in
+                    bind(cleanup.id, at: 1, to: statement)
+                    while try stepRow(statement) {
+                        let trashPath = columnOptionalText(statement, 4)
+                        entries.append(CleanupHistoryEntry(
+                            cleanupID: cleanup.id,
+                            date: cleanup.date,
+                            findingID: columnText(statement, 0),
+                            title: columnText(statement, 1),
+                            action: columnText(statement, 2),
+                            originalPath: columnText(statement, 3),
+                            trashURL: trashPath.map { URL(fileURLWithPath: $0) },
+                            bytes: sqlite3_column_int64(statement, 5),
+                            undone: sqlite3_column_int(statement, 6) != 0
+                        ))
+                    }
+                }
+                return CleanupRecord(id: cleanup.id, date: cleanup.date, entries: entries)
+            }
         }
     }
 

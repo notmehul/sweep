@@ -1,9 +1,12 @@
 import Foundation
 import Observation
 import SweepCore
+import SweepStore
+import SweepSystem
 
 /// What a finished scan hands the UI.
 struct ScanReport: Sendable {
+    var date: Date = .now
     var tree: SizeNode
     var findings: [Finding]
     /// Share of the disk Sweep could read; below 1 without Full Disk Access.
@@ -40,18 +43,24 @@ struct CleanOutcome: Sendable {
 protocol Cleaner: Sendable {
     func clean(_ findings: [Finding]) async -> CleanOutcome
     func undoLast() async -> Bool
+    func undo(cleanupID: String) async -> Bool
+    func cleanupHistory(limit: Int) async -> [CleanupRecord]
+    func latestScanDate() async -> Date?
     /// Remembers "keep this, don't ask again".
     func keep(_ finding: Finding)
 }
 
 extension Cleaner {
+    func undo(cleanupID: String) async -> Bool { false }
+    func cleanupHistory(limit: Int) async -> [CleanupRecord] { [] }
+    func latestScanDate() async -> Date? { nil }
     func keep(_ finding: Finding) {}
 }
 
 @MainActor @Observable
 final class AppModel {
     enum Screen: Equatable {
-        case welcome, scanning, results, bucket(Bucket), cleaning, done
+        case welcome, scanning, results, bucket(Bucket), cleaning, done, history
     }
 
     var screen: Screen = .welcome
@@ -63,6 +72,12 @@ final class AppModel {
     var kept: Set<Finding.ID> = []
     var outcome: CleanOutcome?
     var confirming = false
+    var cleanups: [CleanupRecord] = []
+    var isLoadingHistory = false
+    var historyUndoing: Set<String> = []
+    var historyMessage: String?
+    var freeSpace: Int64?
+    var lastScanDate: Date?
 
     private let source: ScanSource
     private let cleaner: Cleaner
@@ -90,6 +105,7 @@ final class AppModel {
                     if let tree { liveTree = tree }
                 case .finished(let r):
                     report = r
+                    lastScanDate = r.date
                     selection = Set(r.findings.filter { $0.bucket == .rebuilds }.map(\.id))
                     screen = .results
                 }
@@ -151,6 +167,43 @@ final class AppModel {
     func undo() {
         Task {
             if await cleaner.undoLast() { outcome?.canUndo = false }
+        }
+    }
+
+    func showHistory() {
+        screen = .history
+        loadHistory()
+    }
+
+    func loadHistory() {
+        isLoadingHistory = true
+        historyMessage = nil
+        Task {
+            cleanups = await cleaner.cleanupHistory(limit: 100)
+            isLoadingHistory = false
+        }
+    }
+
+    func undo(cleanupID: String) {
+        guard !historyUndoing.contains(cleanupID) else { return }
+        historyUndoing.insert(cleanupID)
+        historyMessage = nil
+        Task {
+            let restored = await cleaner.undo(cleanupID: cleanupID)
+            cleanups = await cleaner.cleanupHistory(limit: 100)
+            historyUndoing.remove(cleanupID)
+            if !restored {
+                historyMessage = "Sweep couldn't put these items back. They may no longer be in the Trash."
+            }
+        }
+    }
+
+    func refreshMenuBar() {
+        Task {
+            freeSpace = await Task.detached(priority: .utility) {
+                try? VolumeInfo.home().freeBytes
+            }.value
+            lastScanDate = await cleaner.latestScanDate()
         }
     }
 }

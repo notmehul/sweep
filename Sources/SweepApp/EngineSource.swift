@@ -104,6 +104,7 @@ struct EngineScanSource: ScanSource {
         continuation.yield(.progress(ScanProgress(scannedBytes: result.totalAllocated, totalBytes: result.totalAllocated,
                                                   filesSeen: result.filesSeen, currentPath: "Done"), tree: tree))
         continuation.yield(.finished(ScanReport(
+            date: saved?.date ?? .now,
             tree: tree, findings: findings,
             coverage: FDAProbe.hasFullDiskAccess() ? 1 : 0,
             isDeveloper: facts.persona.isDeveloper,
@@ -194,6 +195,24 @@ struct EngineCleaner: Cleaner {
     func undoLast() async -> Bool {
         guard let store else { return false }
         return await CleanupExecutor(store: store, facts: MacFacts(measureApplicationSizes: false)).undoLast()
+    }
+
+    func undo(cleanupID: String) async -> Bool {
+        guard let store else { return false }
+        return await CleanupExecutor(
+            store: store,
+            facts: MacFacts(measureApplicationSizes: false)
+        ).undo(cleanupID: cleanupID)
+    }
+
+    func cleanupHistory(limit: Int) async -> [CleanupRecord] {
+        guard let store else { return [] }
+        return (try? store.cleanups(limit: limit)) ?? []
+    }
+
+    func latestScanDate() async -> Date? {
+        guard let store else { return nil }
+        return (try? store.latestScan())?.date
     }
 
     func keep(_ finding: Finding) {

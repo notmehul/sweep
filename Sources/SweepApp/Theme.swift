@@ -130,6 +130,21 @@ enum Format {
         if days < 45 { return "Used \(days) days ago" }
         return "Last used " + date.formatted(.dateTime.month(.abbreviated).year())
     }
+
+    static func cleanupDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = .current
+        formatter.dateFormat = "d MMM, h:mm a"
+        return formatter.string(from: date)
+    }
+
+    static func ago(_ date: Date?, now: Date = .now) -> String {
+        guard let date else { return "Never" }
+        let days = max(0, Calendar.current.dateComponents([.day], from: date, to: now).day ?? 0)
+        if days == 0 { return "Today" }
+        if days == 1 { return "Yesterday" }
+        return "\(days) days ago"
+    }
 }
 
 /// Primary call to action: filled accent, one per screen.

@@ -167,3 +167,24 @@ private func item(path: String = "/fixture/home/cache", fileID: UInt64 = 42) -> 
         #expect(record.entries.first { $0.originalPath == "/fixture/home/cache" }?.undone == false)
     }
 }
+
+@Test func cleanupsAreNewestFirstAndRespectLimit() throws {
+    try withTemporaryStore { store, _ in
+        let entry = CleanupEntry(
+            findingID: "download",
+            title: "Download",
+            action: "trash",
+            originalPath: "/fixture/home/download",
+            trashURL: URL(fileURLWithPath: "/fixture/trash/download"),
+            bytes: 20
+        )
+        try store.recordCleanup([entry], id: "old", date: Date(timeIntervalSince1970: 10))
+        try store.recordCleanup([entry], id: "new", date: Date(timeIntervalSince1970: 20))
+
+        let records = try store.cleanups(limit: 1)
+
+        #expect(records.map(\.id) == ["new"])
+        #expect(records.first?.entries.first?.findingID == "download")
+        #expect(try store.cleanups(limit: 0).isEmpty)
+    }
+}
