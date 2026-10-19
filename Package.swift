@@ -16,9 +16,14 @@ let package = Package(
     targets: [
         .target(name: "SweepCore"),
         .target(name: "CAttrBulk"),
-        .target(name: "SweepSystem", dependencies: ["SweepCore", "CAttrBulk"]),
+        .target(
+            name: "SweepStore",
+            dependencies: ["SweepCore"],
+            linkerSettings: [.linkedLibrary("sqlite3")]
+        ),
+        .target(name: "SweepSystem", dependencies: ["SweepCore", "CAttrBulk", "SweepStore"]),
         .target(name: "SweepRules", dependencies: ["SweepCore"], resources: [.copy("Resources/rules")]),
-        .executableTarget(name: "SweepApp", dependencies: ["SweepCore", "SweepSystem", "SweepRules"]),
+        .executableTarget(name: "SweepApp", dependencies: ["SweepCore", "SweepSystem", "SweepRules", "SweepStore"]),
         .testTarget(
             name: "SweepCoreTests",
             dependencies: ["SweepCore"],
@@ -26,7 +31,12 @@ let package = Package(
         ),
         .testTarget(
             name: "SweepSystemTests",
-            dependencies: ["SweepSystem", "SweepCore"],
+            dependencies: ["SweepSystem", "SweepCore", "SweepStore"],
+            swiftSettings: testingPluginPath
+        ),
+        .testTarget(
+            name: "SweepStoreTests",
+            dependencies: ["SweepStore", "SweepCore"],
             swiftSettings: testingPluginPath
         ),
         .testTarget(
