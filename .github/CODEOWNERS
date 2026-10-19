@@ -1,0 +1,2 @@
+# Cleanup rules decide what gets deleted; every change needs owner review.
+/Sources/SweepRules/ @notmehul
