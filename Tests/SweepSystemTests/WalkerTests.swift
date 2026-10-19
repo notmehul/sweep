@@ -288,7 +288,9 @@ func HomeBench() async throws {
     ))
     let result = try #require(events.result)
 
-    #expect(Set(events.subtrees.map(\.name)) == ["a", "b"])
+    let topLevel = events.subtrees.filter { ($0.path as NSString).deletingLastPathComponent == fixture.root.path }
+    #expect(Set(topLevel.map(\.name)) == ["a", "b"])
+    #expect(events.subtrees.contains { $0.name == "one.bin" })
     for subtree in events.subtrees {
         let final = try #require(node(at: subtree.path, in: result.root))
         #expect(final.allocatedSize == subtree.allocatedSize)

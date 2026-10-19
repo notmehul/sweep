@@ -46,7 +46,8 @@ struct EngineScanSource: ScanSource {
         let engine = RuleEngine(rules: rules, facts: facts)
 
         var items: [ScannedItem] = []
-        var finished: [SizeNode] = []
+        var finished: [String: SizeNode] = [:]
+        var partial: [String: [SizeNode]] = [:]
         var last = ScanProgress(scannedBytes: 0, totalBytes: estimate, filesSeen: 0, currentPath: "~")
         var result: WalkResult?
 
@@ -62,10 +63,10 @@ struct EngineScanSource: ScanSource {
                 last.currentPath = Self.tilde(last.currentPath, home: home)
                 continuation.yield(.progress(last, tree: nil))
             case .subtree(let node):
-                finished.append(node)
-                let partial = SizeNode(name: "Home", path: home, allocatedSize: estimate,
-                                       children: finished.sorted { $0.allocatedSize > $1.allocatedSize })
-                continuation.yield(.progress(last, tree: partial))
+                let parent = (node.path as NSString).deletingLastPathComponent
+                if parent == home { finished[node.path] = node } else { partial[parent, default: []].append(node) }
+                continuation.yield(.progress(last, tree: Self.liveTree(home: home, estimate: estimate,
+                                                                       finished: finished, partial: partial)))
             case .item(let item):
                 items.append(item)
             case .finished(let r):
@@ -95,8 +96,10 @@ struct EngineScanSource: ScanSource {
             topFindings: top.map { .init(title: $0.title, allocatedBytes: $0.reclaimableSize) },
             coverage: result.unreadablePaths.isEmpty ? 1 : 0.9))
 
-        _ = try? store?.saveScan(totalBytes: result.totalAllocated, freeBytes: volume?.freeBytes ?? 0,
-                                 coverage: FDAProbe.hasFullDiskAccess() ? 1 : 0, tree: result.root, findings: findings)
+        let coverage: Double = FDAProbe.hasFullDiskAccess() ? 1 : 0
+        let saved = try? store?.saveScan(totalBytes: result.totalAllocated, freeBytes: volume?.freeBytes ?? 0,
+                                         coverage: coverage, tree: result.root, findings: findings)
+        let changes = await Self.changeSentence(latest: saved, previous: previous, store: store)
 
         continuation.yield(.progress(ScanProgress(scannedBytes: result.totalAllocated, totalBytes: result.totalAllocated,
                                                   filesSeen: result.filesSeen, currentPath: "Done"), tree: tree))
@@ -105,16 +108,53 @@ struct EngineScanSource: ScanSource {
             coverage: FDAProbe.hasFullDiskAccess() ? 1 : 0,
             isDeveloper: facts.persona.isDeveloper,
             summary: summary,
-            usedBytes: volume?.usedBytes ?? result.totalAllocated)))
+            usedBytes: volume?.usedBytes ?? result.totalAllocated,
+            changes: changes)))
     }
 
-    /// Paints sunburst nodes with the bucket of the finding that covers them.
+    /// "Since 12 Oct, Downloads grew 2.1 GB." Only between scans that could see the same
+    /// folders: a scan with Full Disk Access sees far more than one without, and comparing
+    /// them would invent growth.
+    static func changeSentence(latest: StoredScan?, previous: StoredScan?, store: Store?) async -> String? {
+        guard let latest, let previous, let store, latest.coverage == previous.coverage else { return nil }
+        let period = "since " + previous.date.formatted(.dateTime.day().month(.abbreviated))
+        let facts = store.diff(latest: latest, previous: previous).compactMap { change -> ChangeFact? in
+            guard case .topLevelFolder(_, let name) = change.scope, abs(change.byteDelta) >= 500_000_000 else { return nil }
+            return ChangeFact(name: name, deltaBytes: change.byteDelta, period: period)
+        }
+        .sorted { abs($0.deltaBytes) > abs($1.deltaBytes) }
+        return await ResilientExplainer().narrate(Array(facts.prefix(3)))
+    }
+
+    /// The sunburst while scanning: finished top-level folders as they are, plus folders still
+    /// being read, sized by the parts of them already finished. Nothing shrinks as it grows.
+    static func liveTree(home: String, estimate: Int64, finished: [String: SizeNode],
+                         partial: [String: [SizeNode]]) -> SizeNode {
+        var children = Array(finished.values)
+        for (path, parts) in partial where finished[path] == nil {
+            children.append(SizeNode(name: (path as NSString).lastPathComponent, path: path,
+                                     allocatedSize: parts.reduce(0) { $0 + $1.allocatedSize },
+                                     children: parts.sorted { $0.allocatedSize > $1.allocatedSize }))
+        }
+        return SizeNode(name: "Home", path: home, allocatedSize: estimate,
+                        children: children.sorted { $0.path < $1.path })
+    }
+
+    /// Paints a sunburst node with a bucket when that bucket covers at least 40% of it, so a
+    /// cache five folders deep still colours the rings you can see.
     static func colorize(_ node: SizeNode, findings: [Finding]) -> SizeNode {
-        let covered = findings.flatMap { f in f.items.map { ($0.path, f.bucket) } }
+        let covered = findings.flatMap { f in f.items.map { (path: $0.path, bucket: f.bucket, bytes: $0.allocatedSize) } }
         func paint(_ n: SizeNode) -> SizeNode {
             var out = n
-            out.bucket = covered.first { n.path == $0.0 || n.path.hasPrefix($0.0 + "/") }?.1
-            if out.bucket == nil { out.children = n.children.map(paint) }
+            var byBucket: [Bucket: Int64] = [:]
+            for c in covered where c.path == n.path || c.path.hasPrefix(n.path + "/") || n.path.hasPrefix(c.path + "/") {
+                byBucket[c.bucket, default: 0] += n.path.hasPrefix(c.path + "/") ? n.allocatedSize : c.bytes
+            }
+            if let (bucket, bytes) = byBucket.max(by: { $0.value < $1.value }),
+               n.allocatedSize > 0, Double(bytes) / Double(n.allocatedSize) >= 0.4 {
+                out.bucket = bucket
+            }
+            out.children = n.children.map(paint)
             return out
         }
         return paint(node)

@@ -25,6 +25,10 @@ struct RootView: View {
         .sheet(isPresented: $model.confirming) { ConfirmSheet(model: model) }
         .frame(minWidth: 940, minHeight: 620)
         .preferredColorScheme(Self.forcedScheme)
+        .onAppear {
+            // Dev aid: SWEEP_AUTOSCAN=1 starts a scan on launch, for screenshots without focus.
+            if ProcessInfo.processInfo.environment["SWEEP_AUTOSCAN"] == "1", model.screen == .welcome { model.startScan() }
+        }
     }
 
     /// Dev aid: `SWEEP_APPEARANCE=light|dark` pins the appearance for screenshots.
@@ -143,7 +147,8 @@ struct ScanScreen: View {
                 }
                 .foregroundStyle(Theme.text)
 
-                Text(progress.map { "Looking in " + $0.currentPath } ?? "Getting ready…")
+                Text(progress.map { p in p.currentPath.hasPrefix("~") || p.currentPath.hasPrefix("/")
+                                       ? "Looking in " + p.currentPath : p.currentPath + "…" } ?? "Getting ready…")
                     .font(Theme.caption)
                     .foregroundStyle(Theme.secondary)
                     .lineLimit(1)
@@ -214,6 +219,14 @@ struct ResultsScreen: View {
                         .lineSpacing(3)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.top, 6)
+
+                    if let changes = report.changes {
+                        Label(changes, systemImage: "clock.arrow.circlepath")
+                            .font(Theme.caption)
+                            .foregroundStyle(Theme.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.top, 8)
+                    }
 
                     VStack(spacing: 0) {
                         ForEach([Bucket.rebuilds, .review, .yours], id: \.self) { bucket in

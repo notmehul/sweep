@@ -39,4 +39,5 @@ The Command Line Tools ship no macro plugins for SwiftUI, SwiftData or Foundatio
 - Each bucket's colour always comes with its SF Symbol (`Theme.symbol(for:)`), so colour is never the only signal.
 - Dev aids:
   - `SWEEP_APPEARANCE=light|dark` pins the appearance for screenshots.
+  - `SWEEP_AUTOSCAN=1` starts a scan on launch (with `open -g --env`), so no clicks are needed.
   - The app currently runs on `DemoSource`/`DemoCleaner` sample data until the engine is wired in.

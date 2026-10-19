@@ -11,8 +11,12 @@ enum Theme {
     static let hairline = dynamic(light: 0x000000, lightAlpha: 0.08, dark: 0xFFFFFF, darkAlpha: 0.08)
     static let text = dynamic(light: 0x16171A, dark: 0xF2F2F3)
     static let secondary = dynamic(light: 0x5B5F66, dark: 0xA3A6AC)
-    static let track = dynamic(light: 0xE7E8EB, dark: 0x25272B)
+    /// Empty, not-yet-scanned space: barely there.
+    static let track = dynamic(light: 0xECEDEF, dark: 0x1C1D20)
     static let trackDeep = dynamic(light: 0xDADCE0, dark: 0x2D2F34)
+    /// Scanned folders with nothing to clean: clearly visible against the track.
+    static let segment = dynamic(light: 0xCDD1D7, dark: 0x41454D)
+    static let segmentDeep = dynamic(light: 0xBEC3CA, dark: 0x4D525B)
 
     /// Accent doubles as the "rebuilds itself" colour; the light value keeps 4.5:1 on white.
     static let accent = dynamic(light: 0x16805A, dark: 0x6FD8A8)

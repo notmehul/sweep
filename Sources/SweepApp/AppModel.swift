@@ -12,6 +12,8 @@ struct ScanReport: Sendable {
     var summary: String
     /// Used space on the disk, for the before/after bar.
     var usedBytes: Int64
+    /// What grew or shrank since the last comparable scan, in one sentence.
+    var changes: String? = nil
 }
 
 enum ScanUpdate: Sendable {

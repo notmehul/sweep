@@ -114,7 +114,7 @@ struct SunburstView: View {
         // Empty tracks first, so unscanned space reads as "not yet looked at".
         for depth in 1...rings {
             let r0 = core + ring * CGFloat(depth - 1) + 1.5, r1 = r0 + ring - 3
-            ctx.fill(annulus(c, r0, r1, 0, 1), with: .color(Theme.track.opacity(0.6)))
+            ctx.fill(annulus(c, r0, r1, 0, 1), with: .color(Theme.track))
         }
 
         for seg in segments {
@@ -123,7 +123,7 @@ struct SunburstView: View {
             let gap = min(0.0025, (seg.end - seg.start) * 0.2)
             let path = annulus(c, r0, r1, seg.start + gap, seg.end - gap)
             let isHovered = hovered?.id == seg.id
-            let fill: Color = seg.bucket.map { Theme.color(for: $0) } ?? (seg.depth == 1 ? Theme.trackDeep : Theme.track)
+            let fill: Color = seg.bucket.map { Theme.color(for: $0) } ?? (seg.depth == 1 ? Theme.segmentDeep : Theme.segment)
             ctx.fill(path, with: .color(fill.opacity(isHovered ? 1 : (seg.bucket == nil ? 1 : 0.88))))
             if isHovered {
                 ctx.stroke(path, with: .color(Theme.text.opacity(0.5)), lineWidth: 1.5)
