@@ -50,7 +50,8 @@ public struct InstalledApps: Sendable {
         ]
     }
 
-    public func scan() -> [InstalledApplication] {
+    /// `measureSizes: false` skips walking every app bundle; the cleaner only needs IDs and names.
+    public func scan(measureSizes: Bool = true) -> [InstalledApplication] {
         let fileManager = FileManager.default
         var seen = Set<String>()
         var applications: [InstalledApplication] = []
@@ -88,7 +89,7 @@ public struct InstalledApps: Sendable {
                         path: path,
                         bundleID: bundleID,
                         displayName: displayName,
-                        allocatedSize: Self.allocatedSize(of: child),
+                        allocatedSize: measureSizes ? Self.allocatedSize(of: child) : 0,
                         lastUsed: spotlight.lastOpened(path: path),
                         dateAdded: spotlight.dateAdded(path: path)
                     )

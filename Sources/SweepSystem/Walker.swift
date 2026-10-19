@@ -279,7 +279,7 @@ private struct WalkOperation: Sendable {
                 rootDevice: rootDevice,
                 depth: depth,
                 suppressItems: suppressItems || claimed,
-                parallelChildren: false,
+                parallelChildren: depth < 5,
                 progress: progress
             ) else {
                 return nil

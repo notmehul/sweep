@@ -2,6 +2,11 @@ import Foundation
 
 public final class RuleEngine: Sendable {
     private let rules: [CompiledRule]
+    /// One alternation of every directory (unit) rule's and every file rule's path pattern.
+    /// claimsAsUnit runs on each of ~1M paths; most fail a single regex check here, so the
+    /// per-rule work only runs on the few that might match. nil when a rule has no path pattern.
+    private let directoryPrefilter: CompiledPattern?
+    private let filePrefilter: CompiledPattern?
     private let facts: any SystemFacts
     private let home: String
 
@@ -14,6 +19,34 @@ public final class RuleEngine: Sendable {
                 return $0.id < $1.id
             }
             .map(CompiledRule.init)
+        self.directoryPrefilter = Self.prefilter(for: self.rules.filter { $0.rule.unit })
+        self.filePrefilter = Self.prefilter(for: self.rules.filter { !$0.rule.unit })
+    }
+
+    /// Cheap name test run on every file before any regex. File rules only look at these
+    /// shapes; `everyFileRuleFixturePassesTheFastFilter` keeps this list honest.
+    static func fileMightMatch(_ relative: String) -> Bool {
+        if relative.hasPrefix("Downloads/") && !relative.dropFirst(10).contains("/") { return true }
+        if relative.hasPrefix("Applications/") || relative.hasPrefix("Library/Preferences/") { return true }
+        let name = relative.split(separator: "/").last.map { $0.lowercased() } ?? ""
+        if name.hasSuffix(".zst") || name.hasSuffix(".ipsw") || name.hasSuffix(".pem") || name.hasSuffix(".p12")
+            || name.hasSuffix(".backup") || name == ".env" { return true }
+        for word in ["screenshot", "screen shot", "screen recording", "recovery", "secret", "apikey",
+                     "api-key", "api_key", "id_rsa", "id_ed25519", "state.vscdb"] where name.contains(word) {
+            return true
+        }
+        return false
+    }
+
+    private static func prefilter(for rules: [CompiledRule]) -> CompiledPattern? {
+        var patterns: [String] = []
+        for compiled in rules {
+            if let glob = compiled.rule.match.pathGlob { patterns.append(GlobCompiler.regex(for: glob)) }
+            else if let regex = compiled.rule.match.regex { patterns.append(regex) }
+            else { return nil }
+        }
+        guard !patterns.isEmpty else { return CompiledPattern(pattern: "(?!)") }
+        return CompiledPattern(pattern: patterns.map { "(?:\($0))" }.joined(separator: "|"))
     }
 
     /// A path-only hot path for the walker. Directories are claimed only by unit rules;
@@ -21,9 +54,13 @@ public final class RuleEngine: Sendable {
     /// normal large-file threshold. Conditions are checked again after measurement.
     public func claimsAsUnit(path: String, isDirectory: Bool) -> Bool {
         guard let relative = relativePath(path) else { return false }
+        if !isDirectory && !Self.fileMightMatch(relative) { return false }
+        if let prefilter = isDirectory ? directoryPrefilter : filePrefilter, !prefilter.matches(relative) {
+            return false
+        }
+        let owner = owner(for: relative)
         return rules.contains { compiled in
             guard compiled.rule.unit == isDirectory else { return false }
-            let owner = owner(for: relative)
             return compiled.pathMatches(relative: relative, owner: owner)
                 && unitConditionsAllow(compiled.rule, owner: owner)
         }
@@ -742,8 +779,17 @@ public final class RuleEngine: Sendable {
         return browsers.first { relative.localizedCaseInsensitiveContains($0.0) }?.1
     }
 
-    private static func cleanPath(_ path: String) -> String {
-        URL(fileURLWithPath: path).standardizedFileURL.path
+    /// Lexical clean-up only (".", "..", "//", trailing "/"). `URL(fileURLWithPath:)` would
+    /// stat every path to learn whether it's a directory, which cost ~40 s per home scan.
+    static func cleanPath(_ path: String) -> String {
+        guard path.hasPrefix("/") else { return path }
+        var parts: [Substring] = []
+        for part in path.split(separator: "/", omittingEmptySubsequences: true) {
+            if part == "." { continue }
+            if part == ".." { if !parts.isEmpty { parts.removeLast() }; continue }
+            parts.append(part)
+        }
+        return "/" + parts.joined(separator: "/")
     }
 
     private static func looksLikeBundleID(_ value: String) -> Bool {

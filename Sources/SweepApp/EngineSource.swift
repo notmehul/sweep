@@ -141,7 +141,7 @@ struct EngineCleaner: Cleaner {
                                 skipped: findings.map { ($0.title, "Sweep couldn't open its history file, so it cleaned nothing.") },
                                 canUndo: false)
         }
-        let executor = CleanupExecutor(store: store, facts: MacFacts())
+        let executor = CleanupExecutor(store: store, facts: MacFacts(measureApplicationSizes: false))
         let report = await executor.clean(findings)
         let skippedTitles = Set(report.skipped.map(\.title))
         let trashed = findings.filter { $0.action == .trash && !skippedTitles.contains($0.title) }
@@ -159,7 +159,7 @@ struct EngineCleaner: Cleaner {
 
     func undoLast() async -> Bool {
         guard let store else { return false }
-        return await CleanupExecutor(store: store, facts: MacFacts()).undoLast()
+        return await CleanupExecutor(store: store, facts: MacFacts(measureApplicationSizes: false)).undoLast()
     }
 
     func keep(_ finding: Finding) {

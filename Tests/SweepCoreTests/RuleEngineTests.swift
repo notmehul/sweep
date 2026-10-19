@@ -304,3 +304,8 @@ private func runGit(_ arguments: [String], in directory: URL) throws {
 private enum GitTestError: Error {
     case failed(Int32)
 }
+
+@Test func cleanPathIsLexical() {
+    #expect(RuleEngine.cleanPath("/Users/a//b/./c/../d/") == "/Users/a/b/d")
+    #expect(RuleEngine.cleanPath("/") == "/")
+}

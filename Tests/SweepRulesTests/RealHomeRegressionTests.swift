@@ -106,3 +106,11 @@ private func classify(_ relatives: [(String, Bool)], repositories: [String] = []
     #expect(engine.classifyDuplicates([deliberate]).isEmpty)
     #expect(engine.classifyDuplicates([stray]).map { $0.items[0].path }.first?.hasSuffix("report (1).pdf") == true)
 }
+
+/// The engine skips the rule regexes for files whose names can't match any file rule.
+/// Every file-rule fixture must get past that fast filter, or the rule would silently never fire.
+// yours.large-old-files is exempt: files of 500 MB and up are always reported by the walker.
+@Test(arguments: catalogFixtureCases.filter { !$0.directory && $0.ruleID != "yours.large-old-files" })
+func everyFileRuleFixturePassesTheFastFilter(testCase: RuleFixtureCase) {
+    #expect(RuleEngine.fileMightMatch(testCase.relativePath), "\(testCase.ruleID): \(testCase.relativePath)")
+}

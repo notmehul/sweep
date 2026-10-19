@@ -39,7 +39,8 @@ public final class MacFacts: SystemFacts, CandidateCollectionFacts, @unchecked S
         gitProbe: GitProbe = GitProbe(),
         runningBundleIDs: Set<String>? = nil,
         runningApplicationNames: Set<String>? = nil,
-        applicationURLResolver: ((String) -> URL?)? = nil
+        applicationURLResolver: ((String) -> URL?)? = nil,
+        measureApplicationSizes: Bool = true
     ) {
         self.homeDirectory = homeDirectory
         self.now = now
@@ -47,7 +48,7 @@ public final class MacFacts: SystemFacts, CandidateCollectionFacts, @unchecked S
         self.gitProbe = gitProbe
 
         let roots = applicationRoots ?? InstalledApps.defaultRoots(homeDirectory: homeDirectory)
-        let applications = InstalledApps(roots: roots, spotlight: spotlight).scan()
+        let applications = InstalledApps(roots: roots, spotlight: spotlight).scan(measureSizes: measureApplicationSizes)
         self.installedApplications = applications
         self.installedBundleIDs = Set(applications.compactMap(\.bundleID))
         self.applicationsByPath = Dictionary(

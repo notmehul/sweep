@@ -2,7 +2,7 @@
 # Builds Sweep.app into build/. Usage: scripts/bundle.sh [debug|release]
 set -euo pipefail
 root=${0:A:h:h}
-config=${1:-debug}
+config=${1:-release}
 
 swift build --package-path "$root" -c "$config" --product Sweep
 bin=$(swift build --package-path "$root" -c "$config" --show-bin-path)
