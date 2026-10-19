@@ -8,6 +8,7 @@ private struct CollectedEvents {
     var progress: [ScanProgress] = []
     var items: [ScannedItem] = []
     var result: WalkResult?
+    var subtrees: [SizeNode] = []
 }
 
 private func collect(_ stream: AsyncStream<WalkEvent>) async -> CollectedEvents {
@@ -18,6 +19,8 @@ private func collect(_ stream: AsyncStream<WalkEvent>) async -> CollectedEvents 
             collected.progress.append(progress)
         case .item(let item):
             collected.items.append(item)
+        case .subtree(let node):
+            collected.subtrees.append(node)
         case .finished(let result):
             collected.result = result
         }
@@ -270,4 +273,24 @@ func HomeBench() async throws {
         "SWEEP_HOME_BENCH elapsed=\(elapsed) " +
         "totalAllocated=\(result.totalAllocated) files=\(result.filesSeen)"
     )
+}
+
+@Test func emitsEachTopLevelFolderAsItFinishes() async throws {
+    let fixture = try FixtureTree()
+    defer { fixture.remove() }
+    _ = try fixture.regularFile("a/one.bin", size: 1024 * 1024)
+    _ = try fixture.regularFile("b/two.bin", size: 2 * 1024 * 1024)
+
+    let events = await collect(Walker().scan(
+        roots: [fixture.root.path],
+        totalBytes: 3 * 1024 * 1024,
+        claimsAsUnit: { _, _ in false }
+    ))
+    let result = try #require(events.result)
+
+    #expect(Set(events.subtrees.map(\.name)) == ["a", "b"])
+    for subtree in events.subtrees {
+        let final = try #require(node(at: subtree.path, in: result.root))
+        #expect(final.allocatedSize == subtree.allocatedSize)
+    }
 }

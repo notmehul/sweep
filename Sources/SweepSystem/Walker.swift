@@ -6,6 +6,8 @@ import SweepCore
 public enum WalkEvent: Sendable {
     case progress(ScanProgress)
     case item(ScannedItem)
+    /// A top-level folder under a root finished; lets the sunburst grow during the scan.
+    case subtree(SizeNode)
     case finished(WalkResult)
 }
 
@@ -345,6 +347,7 @@ private struct WalkOperation: Sendable {
                         }
                         if let value {
                             values.append(value)
+                            if depth == 0 { continuation.yield(.subtree(value.node)) }
                         }
                     }
                     return values
