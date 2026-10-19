@@ -25,4 +25,12 @@ typedef struct {
 /// Implementation: see attrbulk.c.
 int sweep_read_dir(int dirfd, void *context, void (*visit)(void *context, const SweepEntry *entry));
 
+/// The cancellable form checks `shouldCancel` between entries and returns ECANCELED.
+int sweep_read_dir_cancellable(
+    int dirfd,
+    void *context,
+    void (*visit)(void *context, const SweepEntry *entry),
+    bool (*shouldCancel)(void *context)
+);
+
 #endif
