@@ -1,0 +1,274 @@
+[
+  {
+    "id": "dev.npm-cache",
+    "match": { "pathGlob": ".npm/_cacache" },
+    "conditions": {},
+    "bucket": "rebuilds",
+    "action": { "toolCommand": "npmCacheClean" },
+    "group": "Developer tool caches",
+    "title": "npm package cache",
+    "explain": {
+      "whatItIs": "npm keeps copies of downloaded coding packages here.",
+      "ifRemoved": "npm downloads a package again when a project needs it.",
+      "whyStale": "The downloaded copies are using {size}."
+    },
+    "developer": true,
+    "unit": true,
+    "priority": 220
+  },
+  {
+    "id": "dev.bun-cache",
+    "match": { "pathGlob": ".bun/install/cache" },
+    "conditions": {},
+    "bucket": "rebuilds",
+    "action": { "toolCommand": "bunCacheRm" },
+    "group": "Developer tool caches",
+    "title": "Bun package cache",
+    "explain": {
+      "whatItIs": "Bun keeps copies of downloaded coding packages here.",
+      "ifRemoved": "Bun downloads a package again when a project needs it.",
+      "whyStale": "The downloaded copies are using {size}."
+    },
+    "developer": true,
+    "unit": true,
+    "priority": 220
+  },
+  {
+    "id": "dev.uv-cache",
+    "match": { "pathGlob": ".cache/uv" },
+    "conditions": {},
+    "bucket": "rebuilds",
+    "action": { "toolCommand": "uvCacheClean" },
+    "group": "Developer tool caches",
+    "title": "uv package cache",
+    "explain": {
+      "whatItIs": "uv keeps copies of downloaded Python packages here.",
+      "ifRemoved": "uv downloads a package again when a project needs it.",
+      "whyStale": "The downloaded copies are using {size}."
+    },
+    "developer": true,
+    "unit": true,
+    "priority": 220
+  },
+  {
+    "id": "dev.homebrew-cache",
+    "match": { "pathGlob": "Library/Caches/Homebrew" },
+    "conditions": {},
+    "bucket": "rebuilds",
+    "action": { "toolCommand": "brewCleanup" },
+    "group": "Developer tool caches",
+    "title": "Homebrew downloads",
+    "explain": {
+      "whatItIs": "Homebrew keeps downloaded installers and older package copies here.",
+      "ifRemoved": "Installed tools stay installed, and Homebrew can download files again.",
+      "whyStale": "These downloads are using {size}."
+    },
+    "developer": true,
+    "unit": true,
+    "priority": 230
+  },
+  {
+    "id": "dev.pip-cache",
+    "match": { "regex": "^(Library/Caches/pip|\\.cache/pip)$" },
+    "conditions": {},
+    "bucket": "rebuilds",
+    "action": "delete",
+    "group": "Developer tool caches",
+    "title": "pip package cache",
+    "explain": {
+      "whatItIs": "pip keeps copies of downloaded Python packages here.",
+      "ifRemoved": "pip downloads a package again when a project needs it.",
+      "whyStale": "The downloaded copies are using {size}."
+    },
+    "developer": true,
+    "unit": true,
+    "priority": 220
+  },
+  {
+    "id": "dev.xcode-derived-data",
+    "match": { "pathGlob": "Library/Developer/Xcode/DerivedData/*" },
+    "conditions": { "appNotRunning": "com.apple.dt.Xcode" },
+    "bucket": "rebuilds",
+    "action": "delete",
+    "group": "Xcode temporary builds",
+    "title": "Xcode build files",
+    "explain": {
+      "whatItIs": "Xcode made these files while building a project.",
+      "ifRemoved": "Xcode rebuilds them the next time that project is compiled.",
+      "whyStale": "These build files are using {size}."
+    },
+    "developer": true,
+    "unit": true,
+    "priority": 220
+  },
+  {
+    "id": "dev.xcode-archives",
+    "match": { "pathGlob": "Library/Developer/Xcode/Archives/*" },
+    "conditions": { "minAgeDays": 90, "appNotRunning": "com.apple.dt.Xcode" },
+    "bucket": "review",
+    "action": "trash",
+    "group": "Xcode app archives",
+    "title": "Old Xcode archive",
+    "explain": {
+      "whatItIs": "This is a saved build used to distribute or inspect an app.",
+      "ifRemoved": "You cannot upload or inspect this exact archived build again.",
+      "whyStale": "This archive is {age} old and uses {size}."
+    },
+    "developer": true,
+    "unit": true,
+    "priority": 220
+  },
+  {
+    "id": "dev.ios-device-support",
+    "match": { "pathGlob": "Library/Developer/Xcode/iOS DeviceSupport/*" },
+    "conditions": { "minAgeDays": 90, "appNotRunning": "com.apple.dt.Xcode" },
+    "bucket": "review",
+    "action": "trash",
+    "group": "Old iOS support files",
+    "title": "iOS device support",
+    "explain": {
+      "whatItIs": "Xcode uses these files to work with a particular iOS version.",
+      "ifRemoved": "Xcode may download or prepare them again when that version connects.",
+      "whyStale": "These support files are {age} old and use {size}."
+    },
+    "developer": true,
+    "unit": true,
+    "priority": 220
+  },
+  {
+    "id": "dev.simulator-runtimes",
+    "match": { "pathGlob": "Library/Developer/CoreSimulator/Profiles/Runtimes/*.simruntime" },
+    "conditions": { "minAgeDays": 90, "appNotRunning": "com.apple.dt.Xcode" },
+    "bucket": "review",
+    "action": { "toolCommand": "simctlRuntimeDelete" },
+    "group": "Simulator runtimes",
+    "title": "Old simulator runtime",
+    "explain": {
+      "whatItIs": "This lets Xcode run a simulated Apple device with a specific system version.",
+      "ifRemoved": "That simulated system version will no longer be available until reinstalled.",
+      "whyStale": "This runtime is {age} old and uses {size}."
+    },
+    "developer": true,
+    "unit": true,
+    "priority": 220
+  },
+  {
+    "id": "dev.gradle-cache",
+    "match": { "pathGlob": ".gradle/caches" },
+    "conditions": {},
+    "bucket": "rebuilds",
+    "action": "delete",
+    "group": "Developer tool caches",
+    "title": "Gradle cache",
+    "explain": {
+      "whatItIs": "Gradle keeps downloaded packages and temporary build information here.",
+      "ifRemoved": "Gradle downloads and rebuilds what a project needs.",
+      "whyStale": "This cache is using {size}."
+    },
+    "developer": true,
+    "unit": true,
+    "priority": 220
+  },
+  {
+    "id": "dev.cocoapods-cache",
+    "match": { "pathGlob": "Library/Caches/CocoaPods" },
+    "conditions": {},
+    "bucket": "rebuilds",
+    "action": "delete",
+    "group": "Developer tool caches",
+    "title": "CocoaPods cache",
+    "explain": {
+      "whatItIs": "CocoaPods keeps copies of downloaded app libraries here.",
+      "ifRemoved": "CocoaPods downloads a library again when a project needs it.",
+      "whyStale": "This cache is using {size}."
+    },
+    "developer": true,
+    "unit": true,
+    "priority": 230
+  },
+  {
+    "id": "dev.playwright-cache",
+    "match": { "pathGlob": "Library/Caches/ms-playwright" },
+    "conditions": {},
+    "bucket": "rebuilds",
+    "action": "delete",
+    "group": "Developer tool caches",
+    "title": "Playwright browsers",
+    "explain": {
+      "whatItIs": "Playwright downloaded these browsers for automated testing.",
+      "ifRemoved": "Playwright downloads them again before a test needs them.",
+      "whyStale": "These test browsers are using {size}."
+    },
+    "developer": true,
+    "unit": true,
+    "priority": 230
+  },
+  {
+    "id": "dev.known-dot-caches",
+    "match": { "regex": "^\\.cache/(go-build|ruff|pre-commit|pnpm|yarn|deno)$" },
+    "conditions": {},
+    "bucket": "rebuilds",
+    "action": "delete",
+    "group": "Developer tool caches",
+    "title": "{app} cache",
+    "explain": {
+      "whatItIs": "A coding tool keeps temporary or downloaded files here.",
+      "ifRemoved": "The tool makes or downloads them again when needed.",
+      "whyStale": "This cache is using {size}."
+    },
+    "developer": true,
+    "unit": true,
+    "priority": 220
+  },
+  {
+    "id": "dev.local-models",
+    "match": { "regex": "^(\\.ollama/models|Library/Application Support/LM Studio/models|\\.cache/huggingface/hub)$" },
+    "conditions": { "minAgeDays": 90 },
+    "bucket": "review",
+    "action": "trash",
+    "group": "Downloaded AI models",
+    "title": "Local AI models",
+    "explain": {
+      "whatItIs": "These are large AI models downloaded to run on this Mac.",
+      "ifRemoved": "The matching app must download them again before using them.",
+      "whyStale": "They have not changed for {age} and use {size}."
+    },
+    "developer": true,
+    "unit": true,
+    "priority": 220
+  },
+  {
+    "id": "dev.old-cli-versions",
+    "match": { "regex": "^\\.local/share/(mise|asdf|nvm|pyenv|runtime-manager)/versions/[^/]+$" },
+    "conditions": { "notSymlinkTarget": true },
+    "bucket": "rebuilds",
+    "action": "delete",
+    "group": "Old tool versions",
+    "title": "Old {app} version",
+    "explain": {
+      "whatItIs": "This is an older copy of a command-line tool.",
+      "ifRemoved": "The active version and the newest spare version stay in place.",
+      "whyStale": "The active link points to a different version."
+    },
+    "developer": true,
+    "unit": true,
+    "priority": 240
+  },
+  {
+    "id": "dev.project-junk",
+    "match": { "regex": "(^|/)(node_modules|\\.venv|venv|\\.next|__pycache__|\\.turbo|\\.pytest_cache|\\.expo|Pods|\\.parcel-cache|\\.svelte-kit|build|dist|dist-[^/]+)$" },
+    "conditions": { "minAgeDays": 30, "cleanRepo": true },
+    "bucket": "rebuilds",
+    "action": "delete",
+    "group": "Old project build files",
+    "title": "{app}",
+    "explain": {
+      "whatItIs": "A project made or downloaded this folder while building.",
+      "ifRemoved": "The project's tools make it again when the project is used.",
+      "whyStale": "The project's newest source edit was {age} ago."
+    },
+    "developer": true,
+    "unit": true,
+    "priority": 210
+  }
+]
