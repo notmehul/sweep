@@ -52,7 +52,7 @@ struct HistoryScreen: View {
             } label: {
                 Label("Results", systemImage: "chevron.left")
             }
-            .buttonStyle(QuietButtonStyle())
+            .quietButton()
             .keyboardShortcut(.cancelAction)
             .padding(.leading, -8)
 
@@ -117,7 +117,7 @@ private struct CleanupHistoryRow: View {
                 .foregroundStyle(Theme.text)
             if canUndo {
                 Button(isUndoing ? "Putting back…" : "Put back from Trash", action: undo)
-                    .buttonStyle(QuietButtonStyle())
+                    .quietButton()
                     .disabled(isUndoing)
             }
         }

@@ -8,7 +8,7 @@ struct RootView: View {
 
     var body: some View {
         ZStack {
-            Theme.background.ignoresSafeArea()
+            WindowBackdrop()
             Group {
                 switch model.screen {
                 case .welcome: WelcomeScreen(model: model)
@@ -72,7 +72,7 @@ struct WelcomeScreen: View {
 
                 HStack(spacing: 12) {
                     Button("Start scan") { model.startScan() }
-                        .buttonStyle(PrimaryButtonStyle())
+                        .primaryButton()
                         .keyboardShortcut(.defaultAction)
                     if !model.hasFullDiskAccess {
                         Text("You can also scan without it.")
@@ -116,7 +116,7 @@ struct AccessRow: View {
                 Button("Open Settings") {
                     NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")!)
                 }
-                .buttonStyle(QuietButtonStyle())
+                .quietButton()
             }
         }
         .padding(16)
@@ -164,7 +164,7 @@ struct ScanScreen: View {
                 .padding(.top, 28)
 
                 Button("Cancel") { model.cancelScan() }
-                    .buttonStyle(QuietButtonStyle())
+                    .quietButton()
                     .keyboardShortcut(.cancelAction)
                     .padding(.top, 28)
                     .padding(.leading, -14)
@@ -202,10 +202,33 @@ struct ResultsScreen: View {
     var body: some View {
         if let report = model.report {
             HStack(spacing: 56) {
-                SunburstView(segments: SunburstLayout.segments(for: report.tree), progress: nil,
-                             centerTitle: "Your Mac", centerSubtitle: Format.bytes(report.tree.allocatedSize),
-                             hovered: $hovered)
-                    .frame(width: 400, height: 400)
+                VStack(spacing: 18) {
+                    let side: CGFloat = model.inspectedFolder == nil ? 400 : 300
+                    SunburstView(segments: SunburstLayout.segments(for: report.tree), progress: nil,
+                                 centerTitle: "Your Mac", centerSubtitle: Format.bytes(report.tree.allocatedSize),
+                                 hovered: $hovered, onSelect: { model.inspect($0) })
+                        .frame(width: side, height: side)
+                    if let folder = model.inspectedFolder {
+                        FolderCard(folder: folder, insight: model.insights[folder.id],
+                                   close: { model.inspectedFolder = nil },
+                                   review: folder.bucket.map { bucket in { model.screen = .bucket(bucket) } })
+                            .id(folder.id)
+                            .transition(.opacity.combined(with: .offset(y: 10)))
+                    } else {
+                        Label("Click any ring to learn what a folder is", systemImage: "sparkles")
+                            .font(Theme.caption)
+                            .foregroundStyle(Theme.secondary)
+                    }
+                }
+                .frame(width: 400)
+                .animation(.spring(duration: 0.35, bounce: 0), value: model.inspectedFolder?.id)
+                .onAppear {
+                    // Dev aid: SWEEP_INSPECT=<folder name> opens that folder's card, for screenshots.
+                    if let name = ProcessInfo.processInfo.environment["SWEEP_INSPECT"],
+                       let hit = SunburstLayout.segments(for: report.tree).first(where: { $0.name == name }) {
+                        model.inspect(hit)
+                    }
+                }
 
                 VStack(alignment: .leading, spacing: 0) {
                     Text("You can free").font(Theme.body).foregroundStyle(Theme.secondary)
@@ -252,14 +275,14 @@ struct ResultsScreen: View {
 
                     HStack(spacing: 8) {
                         Button("Scan again") { model.startScan() }
-                            .buttonStyle(QuietButtonStyle())
+                            .quietButton()
                         Button("History") { model.showHistory() }
-                            .buttonStyle(QuietButtonStyle())
+                            .quietButton()
                         Spacer()
                         Button(model.selectedBytes > 0 ? "Free \(Format.bytes(model.selectedBytes))…" : "Nothing selected") {
                             model.confirming = true
                         }
-                        .buttonStyle(PrimaryButtonStyle())
+                        .primaryButton()
                         .disabled(model.selectedBytes == 0)
                         .keyboardShortcut(.defaultAction)
                     }
@@ -318,5 +341,68 @@ struct BucketBadge: View {
             .background(RoundedRectangle(cornerRadius: 7, style: .continuous)
                 .fill(Theme.color(for: bucket).opacity(0.14)))
             .accessibilityHidden(true)
+    }
+}
+
+/// What a folder is, in plain words, written on this Mac by Apple Intelligence
+/// (or Sweep's built-in wording when it isn't available).
+struct FolderCard: View {
+    var folder: SunburstSegment
+    var insight: FolderInsight?
+    var close: () -> Void
+    /// Present when Sweep already has a suggestion covering this folder.
+    var review: (() -> Void)?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                FileIcon(path: folder.id, size: 32)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(insight?.explanation.title ?? folder.name)
+                        .font(Theme.headline).foregroundStyle(Theme.text).lineLimit(1)
+                    Text("\(Format.bytes(folder.size)) · \(Format.tilde(folder.id))")
+                        .font(Theme.caption).foregroundStyle(Theme.secondary)
+                        .lineLimit(1).truncationMode(.middle)
+                }
+                Spacer(minLength: 8)
+                Button(action: close) { Image(systemName: "xmark") }
+                    .buttonStyle(.glass)
+                    .buttonBorderShape(.circle)
+                    .accessibilityLabel("Close")
+            }
+            if let insight {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(insight.explanation.whatItIs)
+                        .font(Theme.body).foregroundStyle(Theme.text)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(insight.explanation.ifRemoved)
+                        .font(Theme.body).foregroundStyle(Theme.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .transition(.opacity)
+                HStack {
+                    Label(insight.byAppleIntelligence ? "Written by Apple Intelligence on this Mac" : "Written by Sweep",
+                          systemImage: insight.byAppleIntelligence ? "sparkles" : "text.alignleft")
+                        .font(.system(size: 12)).foregroundStyle(Theme.secondary)
+                    Spacer()
+                    if let review {
+                        Button("See suggestions", action: review).quietButton().controlSize(.regular)
+                    }
+                    Button("Show in Finder") {
+                        NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: folder.id)])
+                    }
+                    .quietButton().controlSize(.regular)
+                }
+            } else {
+                HStack(spacing: 10) {
+                    ProgressView().controlSize(.small)
+                    Text("Looking at what's inside…").font(Theme.body).foregroundStyle(Theme.secondary)
+                }
+                .frame(maxWidth: .infinity, minHeight: 60, alignment: .leading)
+            }
+        }
+        .padding(18)
+        .card()
+        .animation(.easeOut(duration: 0.25), value: insight == nil)
     }
 }

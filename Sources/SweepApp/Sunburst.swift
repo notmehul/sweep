@@ -43,6 +43,8 @@ struct SunburstView: View {
     var centerTitle: String
     var centerSubtitle: String
     @Binding var hovered: SunburstSegment?
+    /// Called when a segment is clicked; nil makes the chart look-only.
+    var onSelect: ((SunburstSegment) -> Void)? = nil
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private let rings = 3
@@ -56,6 +58,11 @@ struct SunburstView: View {
                         draw(in: &ctx, size: canvasSize, time: timeline.date.timeIntervalSinceReferenceDate)
                     }
                 }
+                // Glass hub, sized to the hole in the middle of the rings.
+                Circle()
+                    .fill(.clear)
+                    .frame(width: radii(size: size).core * 2 - 6, height: radii(size: size).core * 2 - 6)
+                    .glassEffect(.regular, in: Circle())
                 VStack(spacing: 2) {
                     Text(hovered?.name ?? centerTitle)
                         .font(.system(size: 15, weight: .semibold))
@@ -72,6 +79,11 @@ struct SunburstView: View {
             .frame(width: size, height: size)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .contentShape(Circle())
+            .onTapGesture(coordinateSpace: .local) { point in
+                guard let onSelect else { return }
+                let origin = CGPoint(x: (geo.size.width - size) / 2, y: (geo.size.height - size) / 2)
+                if let hit = segment(at: CGPoint(x: point.x - origin.x, y: point.y - origin.y), size: size) { onSelect(hit) }
+            }
             .onContinuousHover { phase in
                 switch phase {
                 case .active(let point):
@@ -138,7 +150,9 @@ struct SunburstView: View {
             var arc = Path()
             arc.addArc(center: c, radius: r, startAngle: .degrees(-90),
                        endAngle: .degrees(-90 + 360 * max(0.002, progress)), clockwise: false)
-            ctx.stroke(arc, with: .color(Theme.accent), style: StrokeStyle(lineWidth: 2, lineCap: .round))
+            ctx.stroke(arc, with: .conicGradient(Gradient(colors: Theme.aurora + [Theme.aurora[0]]),
+                                                 center: c, angle: .degrees(-90)),
+                       style: StrokeStyle(lineWidth: 3, lineCap: .round))
         }
 
         if showsBeam && !reduceMotion {

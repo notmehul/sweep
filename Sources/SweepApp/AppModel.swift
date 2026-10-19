@@ -71,6 +71,10 @@ final class AppModel {
     var selection: Set<Finding.ID> = []
     var kept: Set<Finding.ID> = []
     var outcome: CleanOutcome?
+    /// The folder whose explanation card is open on the results screen.
+    var inspectedFolder: SunburstSegment?
+    /// On-device explanations, cached per folder path for the session.
+    var insights: [String: FolderInsight] = [:]
     var confirming = false
     var cleanups: [CleanupRecord] = []
     var isLoadingHistory = false

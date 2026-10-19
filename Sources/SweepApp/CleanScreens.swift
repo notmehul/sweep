@@ -40,17 +40,17 @@ struct ConfirmSheet: View {
             HStack {
                 Spacer()
                 Button("Cancel") { dismiss() }
-                    .buttonStyle(QuietButtonStyle())
+                    .quietButton()
                     .keyboardShortcut(.cancelAction)
                 Button("Free \(Format.bytes(model.selectedBytes))") { model.clean() }
-                    .buttonStyle(PrimaryButtonStyle())
+                    .primaryButton()
                     .keyboardShortcut(.defaultAction)
             }
             .padding(.top, 24)
         }
         .padding(28)
         .frame(width: 520)
-        .background(Theme.background)
+        .presentationBackground(.thinMaterial)
     }
 }
 
@@ -127,12 +127,12 @@ struct DoneScreen: View {
 
             HStack(spacing: 8) {
                 if outcome.canUndo && outcome.trashedCount > 0 {
-                    Button("Put back from Trash") { model.undo() }.buttonStyle(QuietButtonStyle())
+                    Button("Put back from Trash") { model.undo() }.quietButton()
                 }
                 Spacer()
-                Button("Scan again") { model.startScan() }.buttonStyle(QuietButtonStyle())
+                Button("Scan again") { model.startScan() }.quietButton()
                 Button("Done") { model.screen = .results }
-                    .buttonStyle(PrimaryButtonStyle())
+                    .primaryButton()
                     .keyboardShortcut(.defaultAction)
             }
             .padding(.top, 32)

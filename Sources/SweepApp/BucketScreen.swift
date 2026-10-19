@@ -54,7 +54,7 @@ struct BucketScreen: View {
             } label: {
                 Label("Results", systemImage: "chevron.left")
             }
-            .buttonStyle(QuietButtonStyle())
+            .quietButton()
             .keyboardShortcut(.cancelAction)
             .padding(.leading, -8)
 
@@ -97,7 +97,7 @@ struct BucketScreen: View {
                             .padding(.horizontal, 28)
                             .padding(.top, 18)
                             .padding(.bottom, 6)
-                            .background(Theme.background)
+                            .background(.ultraThinMaterial)
                     }
                 }
             }
@@ -135,13 +135,13 @@ struct BucketScreen: View {
                         }
                     }
                 }
-                .buttonStyle(QuietButtonStyle())
+                .quietButton()
             }
             Spacer()
             Button(model.selectedBytes > 0 ? "Free \(Format.bytes(model.selectedBytes))…" : "Nothing selected") {
                 model.confirming = true
             }
-            .buttonStyle(PrimaryButtonStyle())
+            .primaryButton()
             .disabled(model.selectedBytes == 0)
             .keyboardShortcut(.defaultAction)
         }
@@ -244,7 +244,7 @@ struct FindingInspector: View {
                     }
                     Button("Keep, don't ask again", action: keep)
                 }
-                .buttonStyle(QuietButtonStyle())
+                .quietButton()
                 .padding(.top, 8)
                 .padding(.leading, -14)
             }

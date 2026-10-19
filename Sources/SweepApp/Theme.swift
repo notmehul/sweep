@@ -3,26 +3,38 @@ import SweepCore
 import SwiftUI
 
 /// Design tokens. Every colour has a light and a dark value and follows the system setting.
-/// Direction: "instrument, but clean" — graphite surfaces, one mint accent, light numerals.
+/// Direction: "aurora on glass". The window is translucent like the user's terminal (black at
+/// ~55% over a blur of the desktop), an aurora drifts behind the content, and every surface
+/// and button is native Liquid Glass. Colours come from the Ghostty palette.
 enum Theme {
-    static let background = dynamic(light: 0xF6F6F7, dark: 0x111214)
-    static let surface = dynamic(light: 0xFFFFFF, dark: 0x18191C)
-    static let raised = dynamic(light: 0xFFFFFF, dark: 0x1F2024)
-    static let hairline = dynamic(light: 0x000000, lightAlpha: 0.08, dark: 0xFFFFFF, darkAlpha: 0.08)
-    static let text = dynamic(light: 0x16171A, dark: 0xF2F2F3)
-    static let secondary = dynamic(light: 0x5B5F66, dark: 0xA3A6AC)
+    /// Tint laid over the blurred desktop, like Ghostty's background-opacity.
+    static let windowTint = dynamic(light: 0xFFFFFF, lightAlpha: 0.42, dark: 0x000000, darkAlpha: 0.55)
+    /// Opaque-enough fill for places that need one (sheets, pinned headers).
+    static let background = dynamic(light: 0xF4F4F6, lightAlpha: 0.85, dark: 0x0B0B0D, darkAlpha: 0.72)
+    static let hairline = dynamic(light: 0x000000, lightAlpha: 0.08, dark: 0xFFFFFF, darkAlpha: 0.10)
+    static let text = dynamic(light: 0x111214, dark: 0xFFFFFF)
+    static let secondary = dynamic(light: 0x000000, lightAlpha: 0.58, dark: 0xFFFFFF, darkAlpha: 0.64)
     /// Empty, not-yet-scanned space: barely there.
-    static let track = dynamic(light: 0xECEDEF, dark: 0x1C1D20)
-    static let trackDeep = dynamic(light: 0xDADCE0, dark: 0x2D2F34)
-    /// Scanned folders with nothing to clean: clearly visible against the track.
-    static let segment = dynamic(light: 0xCDD1D7, dark: 0x41454D)
-    static let segmentDeep = dynamic(light: 0xBEC3CA, dark: 0x4D525B)
+    static let track = dynamic(light: 0x000000, lightAlpha: 0.05, dark: 0xFFFFFF, darkAlpha: 0.05)
+    static let trackDeep = dynamic(light: 0x000000, lightAlpha: 0.09, dark: 0xFFFFFF, darkAlpha: 0.09)
+    /// Scanned folders with nothing to clean: frosted, clearly above the track.
+    static let segment = dynamic(light: 0x000000, lightAlpha: 0.13, dark: 0xFFFFFF, darkAlpha: 0.15)
+    static let segmentDeep = dynamic(light: 0x000000, lightAlpha: 0.18, dark: 0xFFFFFF, darkAlpha: 0.21)
 
-    /// Accent doubles as the "rebuilds itself" colour; the light value keeps 4.5:1 on white.
-    static let accent = dynamic(light: 0x16805A, dark: 0x6FD8A8)
-    static let onAccent = dynamic(light: 0xFFFFFF, dark: 0x0E1A14)
-    static let review = dynamic(light: 0xA86A0C, dark: 0xE8B04B)
-    static let yours = dynamic(light: 0x667085, dark: 0x8C93A0)
+    /// Aurora green; doubles as the "rebuilds itself" colour.
+    static let accent = dynamic(light: 0x0F8A5C, dark: 0x5BE3A6)
+    static let onAccent = dynamic(light: 0xFFFFFF, dark: 0x04170F)
+    /// Ghostty gold (palette 11) for "probably don't need".
+    static let review = dynamic(light: 0x9A6400, dark: 0xF0B84A)
+    /// Ghostty violet (palette 10) for "your call".
+    static let yours = dynamic(light: 0x6B4FB0, dark: 0xA98BE0)
+
+    /// Aurora ribbons: green, teal, violet, pink, blue (Ghostty palette 2, 6, 10, 13, 12).
+    static let aurora: [Color] = [
+        Color(red: 0.25, green: 0.88, blue: 0.62), Color(red: 0.17, green: 0.77, blue: 0.85),
+        Color(red: 0.60, green: 0.47, blue: 0.81), Color(red: 0.92, green: 0.46, blue: 0.80),
+        Color(red: 0.30, green: 0.60, blue: 1.00),
+    ]
 
     static func color(for bucket: Bucket) -> Color {
         switch bucket {
@@ -69,7 +81,7 @@ enum Theme {
     static let number = Font.system(size: 13, weight: .medium).monospacedDigit()
     static let rowNumber = Font.system(size: 15, weight: .semibold).monospacedDigit()
 
-    static let radius: CGFloat = 12
+    static let radius: CGFloat = 20
     static let gutter: CGFloat = 48
 
     private static func dynamic(light: UInt32, lightAlpha: CGFloat = 1, dark: UInt32, darkAlpha: CGFloat = 1) -> Color {
@@ -147,48 +159,27 @@ enum Format {
     }
 }
 
-/// Primary call to action: filled accent, one per screen.
-struct PrimaryButtonStyle: ButtonStyle {
-    @Environment(\.isEnabled) private var isEnabled
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 14, weight: .semibold))
-            .foregroundStyle(Theme.onAccent)
-            .padding(.horizontal, 20)
-            .frame(minHeight: 40)
-            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Theme.accent))
-            .opacity(isEnabled ? (configuration.isPressed ? 0.85 : 1) : 0.4)
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
-            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
-            .contentShape(Rectangle())
-    }
-}
-
-/// Secondary action: quiet, text-weight, same hit height as the primary.
-struct QuietButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 14, weight: .medium))
-            .foregroundStyle(Theme.secondary)
-            .padding(.horizontal, 14)
-            .frame(minHeight: 40)
-            .background(RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Theme.hairline.opacity(configuration.isPressed ? 1 : 0)))
-            .contentShape(Rectangle())
-    }
-}
-
-/// Card surface: hairline ring instead of a heavy shadow.
-struct CardBackground: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .background(RoundedRectangle(cornerRadius: Theme.radius, style: .continuous).fill(Theme.surface))
-            .overlay(RoundedRectangle(cornerRadius: Theme.radius, style: .continuous).strokeBorder(Theme.hairline))
-    }
-}
-
 extension View {
-    func card() -> some View { modifier(CardBackground()) }
+    /// The one primary action per screen: prominent Liquid Glass tinted aurora green.
+    func primaryButton() -> some View {
+        buttonStyle(.glassProminent)
+            .tint(Theme.accent)
+            .foregroundStyle(Theme.onAccent)
+            .font(.system(size: 14, weight: .semibold))
+            .controlSize(.large)
+    }
+
+    /// Secondary actions: clear Liquid Glass, same height as the primary.
+    func quietButton() -> some View {
+        buttonStyle(.glass)
+            .font(.system(size: 14, weight: .medium))
+            .controlSize(.large)
+    }
+
+    /// Surfaces are Liquid Glass panes floating over the aurora.
+    func card(radius: CGFloat = 20) -> some View {
+        glassEffect(.regular, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
+    }
 }
 
 /// `@State` is a macro in the macOS 27 SDK and the Command Line Tools ship no SwiftUI macro

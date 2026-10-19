@@ -32,7 +32,7 @@ struct MenuBarView: View {
 
             HStack(spacing: 6) {
                 Button("Open Sweep", action: openSweep)
-                    .buttonStyle(QuietButtonStyle())
+                    .quietButton()
                     .fixedSize()
                     .padding(.leading, -14)
                 Spacer(minLength: 0)
@@ -40,12 +40,11 @@ struct MenuBarView: View {
                     model.startScan()
                     openSweep()
                 }
-                .buttonStyle(PrimaryButtonStyle())
+                .primaryButton()
             }
         }
         .padding(16)
         .frame(width: 260)
-        .background(Theme.background)
         .onAppear { model.refreshMenuBar() }
     }
 
