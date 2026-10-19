@@ -1,8 +1,12 @@
 [
   {
     "id": "generic.library-caches",
-    "match": { "pathGlob": "Library/Caches/*" },
-    "conditions": { "appNotRunning": "owner" },
+    "match": {
+      "pathGlob": "Library/Caches/*"
+    },
+    "conditions": {
+      "appNotRunning": "owner"
+    },
     "bucket": "rebuilds",
     "action": "delete",
     "group": "App caches",
@@ -18,8 +22,12 @@
   },
   {
     "id": "generic.application-support-caches",
-    "match": { "regex": "^Library/Application Support/.+/(Cache|Code Cache|GPUCache|CachedData|Service Worker/CacheStorage)$" },
-    "conditions": { "appNotRunning": "owner" },
+    "match": {
+      "regex": "^Library/Application Support/.+/(Cache|Code Cache|GPUCache|CachedData|Service Worker/CacheStorage)$"
+    },
+    "conditions": {
+      "appNotRunning": "owner"
+    },
     "bucket": "rebuilds",
     "action": "delete",
     "group": "App caches",
@@ -35,8 +43,12 @@
   },
   {
     "id": "generic.container-caches",
-    "match": { "pathGlob": "Library/Containers/*/Data/Library/Caches" },
-    "conditions": { "appNotRunning": "owner" },
+    "match": {
+      "pathGlob": "Library/Containers/*/Data/Library/Caches"
+    },
+    "conditions": {
+      "appNotRunning": "owner"
+    },
     "bucket": "rebuilds",
     "action": "delete",
     "group": "App caches",
@@ -52,8 +64,12 @@
   },
   {
     "id": "generic.orphan-application-support",
-    "match": { "regex": "^Library/Application Support/[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)+$" },
-    "conditions": { "appNotInstalled": "owner" },
+    "match": {
+      "regex": "^Library/Application Support/[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)+$"
+    },
+    "conditions": {
+      "appNotInstalled": "owner"
+    },
     "bucket": "review",
     "action": "trash",
     "group": "Files left by removed apps",
@@ -69,8 +85,12 @@
   },
   {
     "id": "generic.orphan-container",
-    "match": { "regex": "^Library/Containers/[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)+$" },
-    "conditions": { "appNotInstalled": "owner" },
+    "match": {
+      "regex": "^Library/Containers/[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)+$"
+    },
+    "conditions": {
+      "appNotInstalled": "owner"
+    },
     "bucket": "review",
     "action": "trash",
     "group": "Files left by removed apps",
@@ -86,8 +106,12 @@
   },
   {
     "id": "generic.orphan-group-container",
-    "match": { "regex": "^Library/Group Containers/group\\.[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)+$" },
-    "conditions": { "appNotInstalled": "owner" },
+    "match": {
+      "regex": "^Library/Group Containers/group\\.[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)+$"
+    },
+    "conditions": {
+      "appNotInstalled": "owner"
+    },
     "bucket": "review",
     "action": "trash",
     "group": "Files left by removed apps",
@@ -103,8 +127,12 @@
   },
   {
     "id": "generic.orphan-saved-state",
-    "match": { "regex": "^Library/Saved Application State/[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)+\\.savedState$" },
-    "conditions": { "appNotInstalled": "owner" },
+    "match": {
+      "regex": "^Library/Saved Application State/[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)+\\.savedState$"
+    },
+    "conditions": {
+      "appNotInstalled": "owner"
+    },
     "bucket": "review",
     "action": "trash",
     "group": "Files left by removed apps",
@@ -120,8 +148,12 @@
   },
   {
     "id": "generic.orphan-preference",
-    "match": { "regex": "^Library/Preferences/[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)+\\.plist$" },
-    "conditions": { "appNotInstalled": "owner" },
+    "match": {
+      "regex": "^Library/Preferences/[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)+\\.plist$"
+    },
+    "conditions": {
+      "appNotInstalled": "owner"
+    },
     "bucket": "review",
     "action": "trash",
     "group": "Files left by removed apps",
@@ -137,8 +169,12 @@
   },
   {
     "id": "generic.logs",
-    "match": { "pathGlob": "Library/Logs/*" },
-    "conditions": { "minAgeDays": 30 },
+    "match": {
+      "pathGlob": "Library/Logs/*"
+    },
+    "conditions": {
+      "minAgeDays": 30
+    },
     "bucket": "review",
     "action": "trash",
     "group": "Old logs",
@@ -154,7 +190,9 @@
   },
   {
     "id": "generic.trash",
-    "match": { "pathGlob": ".Trash/*" },
+    "match": {
+      "pathGlob": ".Trash/*"
+    },
     "conditions": {},
     "bucket": "review",
     "action": "trash",
@@ -171,7 +209,9 @@
   },
   {
     "id": "generic.compressed-copy",
-    "match": { "pathGlob": "**/*.zst" },
+    "match": {
+      "pathGlob": "**/*.zst"
+    },
     "conditions": {},
     "bucket": "rebuilds",
     "action": "delete",
@@ -188,8 +228,13 @@
   },
   {
     "id": "generic.unused-apps",
-    "match": { "regex": "^Applications/[^/]+\\.app$" },
-    "conditions": { "minAgeDays": 180, "requiresSpotlight": true },
+    "match": {
+      "regex": "^Applications/[^/]+\\.app$"
+    },
+    "conditions": {
+      "minAgeDays": 180,
+      "requiresSpotlight": true
+    },
     "bucket": "review",
     "action": "trash",
     "group": "Apps you don't use",
@@ -205,7 +250,9 @@
   },
   {
     "id": "generic.installers",
-    "match": { "regex": "(?i)^Downloads/[^/]+\\.(dmg|pkg|zip)$" },
+    "match": {
+      "regex": "(?i)^Downloads/[^/]+\\.(dmg|pkg|zip)$"
+    },
     "conditions": {},
     "bucket": "review",
     "action": "trash",
@@ -222,14 +269,19 @@
   },
   {
     "id": "generic.downloads-never-opened",
-    "match": { "pathGlob": "Downloads/**" },
-    "conditions": { "minAgeDays": 60, "requiresSpotlight": true },
+    "match": {
+      "regex": "^Downloads/[^/]+$"
+    },
+    "conditions": {
+      "minAgeDays": 60,
+      "requiresSpotlight": true
+    },
     "bucket": "review",
     "action": "trash",
     "group": "Old downloads",
     "title": "{app}",
     "explain": {
-      "whatItIs": "This is a file downloaded more than two months ago.",
+      "whatItIs": "You downloaded this more than two months ago.",
       "ifRemoved": "Sweep moves it to the Trash so you can restore it if needed.",
       "whyStale": "Spotlight has no record of this download ever being opened."
     },
@@ -239,8 +291,13 @@
   },
   {
     "id": "yours.large-old-files",
-    "match": { "regex": "(?i)^.+\\.(mov|mp4|m4v|avi|mkv|zip|7z|rar|tar|gz|dmg|iso)$" },
-    "conditions": { "minAgeDays": 365, "requiresSpotlight": true },
+    "match": {
+      "regex": "(?i)^.+\\.(mov|mp4|m4v|avi|mkv|zip|7z|rar|tar|gz|dmg|iso)$"
+    },
+    "conditions": {
+      "minAgeDays": 365,
+      "requiresSpotlight": true
+    },
     "bucket": "yours",
     "action": "showOnly",
     "group": "Large files not opened recently",
@@ -256,7 +313,9 @@
   },
   {
     "id": "yours.screenshots-recordings",
-    "match": { "regex": "(?i)(^|/)(Screenshot|Screen Shot|Screen Recording).+\\.(png|jpg|jpeg|mov|mp4)$" },
+    "match": {
+      "regex": "(?i)(^|/)(Screenshot|Screen Shot|Screen Recording).+\\.(png|jpg|jpeg|mov|mp4)$"
+    },
     "conditions": {},
     "bucket": "yours",
     "action": "showOnly",
@@ -273,7 +332,9 @@
   },
   {
     "id": "yours.secret-looking-names",
-    "match": { "regex": "(?i)(^|/)(recovery[-_ ]?codes?[^/]*|id_(rsa|ed25519)|\\.env|[^/]*\\.(pem|p12)|[^/]*(apikey|api-key|api_keys|secret)[^/]*)$" },
+    "match": {
+      "regex": "(?i)(^|/)([^/]*recovery[-_ ]?codes?[^/]*|id_(rsa|ed25519)|\\.env|[^/]*\\.(pem|p12)|[^/]*(apikey|api-key|api_keys|secret)[^/]*)$"
+    },
     "conditions": {},
     "bucket": "yours",
     "action": "showOnly",

@@ -32,7 +32,7 @@ let package = Package(
         ),
         .testTarget(
             name: "SweepSystemTests",
-            dependencies: ["SweepSystem", "SweepCore", "SweepStore"],
+            dependencies: ["SweepSystem", "SweepCore", "SweepStore", "SweepRules"],
             swiftSettings: testingPluginPath
         ),
         .testTarget(

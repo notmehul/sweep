@@ -164,9 +164,18 @@ public final class RuleEngine: Sendable {
            !item.isDirectory {
             return false
         }
+        // Only the user's own projects: a git checkout outside hidden folders and ~/Library.
+        // Installed tools (Codex, cursor-agent, editor language servers) also ship
+        // node_modules, and deleting those breaks the tool.
         if compiled.rule.id == "dev.project-junk",
-           facts.gitState(repoContaining: item.path) == nil,
-           !context.hasProjectMarker(above: item.path) {
+           facts.gitState(repoContaining: item.path) == nil
+            || relative.hasPrefix(".") || relative.hasPrefix("Library/") {
+            return false
+        }
+        if compiled.rule.id == "yours.secret-looking-names",
+           relative.hasPrefix("Library/") || relative.split(separator: "/").dropLast().contains(where: { $0.hasPrefix(".") || $0 == "site-packages" || $0 == "node_modules" })
+            || ["jpg", "jpeg", "png", "gif", "heic", "webp", "mov", "mp4", "mp3"]
+                .contains((item.path as NSString).pathExtension.lowercased()) {
             return false
         }
         if compiled.rule.id == "yours.large-old-files",

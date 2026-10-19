@@ -74,8 +74,15 @@ struct EngineScanSource: ScanSource {
         }
         guard let result, !Task.isCancelled else { return }
 
-        let kept = Set(items.filter { (try? store?.isKept($0)) == true }.map(\.path))
-        let findings = engine.classify(items.filter { !kept.contains($0.path) })
+        // Apps, never-opened downloads, screenshots, secrets and duplicates don't come from the
+        // walker (it only reports big files and whole folders), so they're gathered separately.
+        last.currentPath = "Checking apps and downloads"
+        continuation.yield(.progress(last, tree: nil))
+        let candidates = await CandidateCollector().collect(home: home, facts: facts, walkerItems: items)
+        let allItems = items + candidates.extraItems
+        let kept = Set(allItems.filter { (try? store?.isKept($0)) == true }.map(\.path))
+        let findings = (engine.classify(allItems.filter { !kept.contains($0.path) })
+                        + engine.classifyDuplicates(candidates.duplicateGroups.map { $0.filter { !kept.contains($0.path) } }))
             .filter { $0.bucket != .dontTouch && !Self.belongsToMacOS($0) }
         let tree = Self.colorize(result.root, findings: findings)
 

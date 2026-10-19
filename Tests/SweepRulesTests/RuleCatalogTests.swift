@@ -96,7 +96,11 @@ func everyCatalogRuleHasAMatchingFixture(testCase: RuleFixtureCase) throws {
             now: now,
             opened: opened,
             added: added,
-            appNames: appNames
+            appNames: appNames,
+            repositories: testCase.ruleID == "dev.project-junk"
+                ? [GitState(root: fixture.path((testCase.relativePath as NSString).deletingLastPathComponent),
+                            isDirty: false, hasRemote: true, lastCommit: nil)]
+                : []
         )
     )
 
@@ -496,7 +500,9 @@ func everyDeveloperJunkNameRequiresAnOldProject(name: String) throws {
     let now = Date(timeIntervalSince1970: 2_000_000_000)
     let engine = RuleEngine(
         rules: try RuleCatalog.load(),
-        facts: CatalogFakeFacts(home: fixture.root.path, now: now)
+        facts: CatalogFakeFacts(home: fixture.root.path, now: now, repositories: [
+            GitState(root: fixture.path("Projects/old"), isDirty: false, hasRemote: true, lastCommit: nil),
+        ])
     )
 
     let finding = try #require(engine.classify([
