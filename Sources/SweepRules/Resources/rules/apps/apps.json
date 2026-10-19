@@ -1,0 +1,189 @@
+[
+  {
+    "id": "apps.cursor-snapshots",
+    "match": { "regex": "^Library/Application Support/Cursor/User/workspaceStorage/.+/snapshots/(codebases|stores)$" },
+    "conditions": { "appNotRunning": "com.todesktop.230313mzl4w4u92" },
+    "bucket": "review",
+    "action": "trash",
+    "group": "Cursor search history",
+    "title": "Cursor project search copies",
+    "explain": {
+      "whatItIs": "Cursor keeps these copies to search projects by meaning.",
+      "ifRemoved": "Cursor can rebuild them, but project search may be slower until it does.",
+      "whyStale": "These search copies are using {size}."
+    },
+    "developer": true,
+    "unit": true,
+    "priority": 230
+  },
+  {
+    "id": "apps.cursor-extension-downloads",
+    "match": { "pathGlob": "Library/Application Support/Cursor/CachedExtensionVSIXs" },
+    "conditions": { "appNotRunning": "com.todesktop.230313mzl4w4u92" },
+    "bucket": "rebuilds",
+    "action": "delete",
+    "group": "Cursor temporary files",
+    "title": "Downloaded Cursor extensions",
+    "explain": {
+      "whatItIs": "Cursor keeps downloaded extension installers here.",
+      "ifRemoved": "Installed extensions stay installed, and Cursor can download an installer again.",
+      "whyStale": "These old installers are using {size}."
+    },
+    "developer": true,
+    "unit": true,
+    "priority": 230
+  },
+  {
+    "id": "apps.cursor-state-backup",
+    "match": { "pathGlob": "Library/Application Support/Cursor/User/globalStorage/state.vscdb.backup" },
+    "conditions": { "appNotRunning": "com.todesktop.230313mzl4w4u92" },
+    "bucket": "rebuilds",
+    "action": "delete",
+    "group": "Cursor temporary files",
+    "title": "Cursor settings backup",
+    "explain": {
+      "whatItIs": "This is Cursor's extra backup of its current settings database.",
+      "ifRemoved": "The live settings database stays in place.",
+      "whyStale": "The backup is using {size}."
+    },
+    "developer": true,
+    "unit": false,
+    "priority": 240
+  },
+  {
+    "id": "apps.communication-caches",
+    "match": { "regex": "^Library/(Application Support|Containers)/.*(Slack|Microsoft Teams|Teams|discord|zoom\\.us|WhatsApp|Telegram|Spotify).*/(Cache|Code Cache|GPUCache|CachedData|Service Worker/CacheStorage)$" },
+    "conditions": { "appNotRunning": "owner" },
+    "bucket": "rebuilds",
+    "action": "delete",
+    "group": "App caches",
+    "title": "{app} cache",
+    "explain": {
+      "whatItIs": "{app} keeps temporary copies here so messages, calls, or media open faster.",
+      "ifRemoved": "{app} downloads these temporary copies again when needed.",
+      "whyStale": "This cache is using {size}."
+    },
+    "developer": false,
+    "unit": true,
+    "priority": 220
+  },
+  {
+    "id": "apps.spotify-cache",
+    "match": { "regex": "^Library/(Application Support|Caches)/.*Spotify.*/(PersistentCache|Storage|Cache)$" },
+    "conditions": { "appNotRunning": "com.spotify.client" },
+    "bucket": "rebuilds",
+    "action": "delete",
+    "group": "App caches",
+    "title": "Spotify song cache",
+    "explain": {
+      "whatItIs": "Spotify keeps songs here so they start faster.",
+      "ifRemoved": "Spotify downloads them again when you play them.",
+      "whyStale": "These temporary songs are using {size}."
+    },
+    "developer": false,
+    "unit": true,
+    "priority": 225
+  },
+  {
+    "id": "apps.browser-caches",
+    "match": { "regex": "^Library/(Application Support|Caches)/.*(Google/Chrome|Google Chrome|Arc|BraveSoftware/Brave-Browser|Microsoft Edge).*/(Cache|Code Cache|GPUCache|Service Worker/CacheStorage)$" },
+    "conditions": { "appNotRunning": "owner" },
+    "bucket": "rebuilds",
+    "action": "delete",
+    "group": "Browser caches",
+    "title": "{app} cache",
+    "explain": {
+      "whatItIs": "{app} keeps temporary website files here so pages load faster.",
+      "ifRemoved": "Websites may load slowly once while {app} downloads them again.",
+      "whyStale": "This browser cache is using {size}."
+    },
+    "developer": false,
+    "unit": true,
+    "priority": 220
+  },
+  {
+    "id": "apps.adobe-media-cache",
+    "match": { "regex": "^Library/Application Support/Adobe/Common/(Media Cache|Media Cache Files)$" },
+    "conditions": { "appNotRunning": "com.adobe.PremierePro" },
+    "bucket": "rebuilds",
+    "action": "delete",
+    "group": "Adobe temporary media",
+    "title": "Adobe media cache",
+    "explain": {
+      "whatItIs": "Adobe video apps make these temporary copies while editing.",
+      "ifRemoved": "Adobe rebuilds them when a project needs them.",
+      "whyStale": "These temporary media files are using {size}."
+    },
+    "developer": false,
+    "unit": true,
+    "priority": 220
+  },
+  {
+    "id": "apps.claude-vm-compressed",
+    "match": { "pathGlob": "Library/Application Support/Claude/vm_bundles/*.zst" },
+    "conditions": { "appNotRunning": "com.anthropic.claudefordesktop" },
+    "bucket": "rebuilds",
+    "action": "delete",
+    "group": "Claude temporary files",
+    "title": "Extra Claude compressed copy",
+    "explain": {
+      "whatItIs": "Claude kept a compressed copy beside the expanded virtual machine file.",
+      "ifRemoved": "The expanded file that Claude uses stays in place.",
+      "whyStale": "Keeping both copies uses an extra {size}."
+    },
+    "developer": false,
+    "unit": false,
+    "priority": 230
+  },
+  {
+    "id": "apps.ios-backups",
+    "match": { "pathGlob": "Library/Application Support/MobileSync/Backup/*" },
+    "conditions": { "minAgeDays": 90 },
+    "bucket": "review",
+    "action": "trash",
+    "group": "iPhone and iPad backups",
+    "title": "Old device backup",
+    "explain": {
+      "whatItIs": "This is a local backup of an iPhone or iPad.",
+      "ifRemoved": "You cannot use this copy to restore that device.",
+      "whyStale": "This backup is {age} old and uses {size}."
+    },
+    "developer": false,
+    "unit": true,
+    "priority": 210
+  },
+  {
+    "id": "apps.old-chat-history",
+    "match": { "regex": "^Library/(Application Support|Containers)/.*(Slack|Microsoft Teams|Teams|discord|zoom\\.us|WhatsApp|Telegram).*/(Archived Sessions|ChatHistory|conversations)$" },
+    "conditions": { "minAgeDays": 90, "appNotRunning": "owner" },
+    "bucket": "review",
+    "action": "trash",
+    "group": "Old chat history",
+    "title": "{app} history",
+    "explain": {
+      "whatItIs": "{app} stored older conversations or sessions here.",
+      "ifRemoved": "Those local copies may no longer appear in the app; using the app's own history controls is safer.",
+      "whyStale": "This history has not changed for {age}."
+    },
+    "developer": false,
+    "unit": true,
+    "priority": 215
+  },
+  {
+    "id": "apps.ipsw-files",
+    "match": { "pathGlob": "**/*.ipsw" },
+    "conditions": { "minAgeDays": 30 },
+    "bucket": "review",
+    "action": "trash",
+    "group": "Apple device updates",
+    "title": "Downloaded device update",
+    "explain": {
+      "whatItIs": "This file can reinstall or update an iPhone, iPad, or Mac.",
+      "ifRemoved": "It can be downloaded again if you need to restore a device.",
+      "whyStale": "This download is {age} old and uses {size}."
+    },
+    "developer": false,
+    "unit": false,
+    "priority": 210
+  }
+]
