@@ -9,14 +9,17 @@ Rules are JSON files under `Sources/SweepRules/Resources/rules/`. They decide wh
    - live app databases
    - Chromium `Partitions/`
    - active browser profiles
-   - anything outside `$HOME`
+   - anything outside `$HOME`, except a user-owned top-level `/Applications/<name>.app`
 2. **Generic conventions** (`generic/`) cover any app without knowing it:
    - `~/Library/Caches/*`
    - app `Cache`/`Code Cache`/`GPUCache` folders
    - the `Caches` folders inside app containers
-   - data whose bundle ID is no longer installed
+   - data whose non-Apple bundle ID is no longer installed (always review and Trash)
    - `.gitignore`-covered developer clutter
-3. **Known-app rules** (`apps/`, `dev/`) refine the generic conventions for specific apps, e.g. Cursor snapshots, Telegram media, Ollama models, Xcode DerivedData.
+3. **Review rules** cover unused apps, installers for installed apps, old unopened downloads, and hash-confirmed duplicates.
+4. **Known-app rules** (`apps/`, `dev/`) refine the generic conventions for specific apps, e.g. Cursor snapshots, Telegram media, Ollama models, Xcode DerivedData.
+
+`/Applications` has one explicit exception to the outside-home guard: Sweep may classify only a top-level `.app` bundle, and the safety gate permits moving it to the Trash only when `st_uid == getuid()`. Nested bundles and every other outside-home path remain protected.
 
 ## A rule's shape
 
@@ -52,6 +55,11 @@ These come from the manual cleanup that started this project:
 | Electron/Chromium `Cache`, `Code Cache`, `GPUCache` | rebuilds | Quit the app first. Never `Partitions/`. |
 | `~/Library/Caches/<app>` | rebuilds | |
 | Package caches (npm, bun, uv, Homebrew) | rebuilds | Use the tool's command. |
+| Data left by removed non-Apple apps | review | Move to Trash. Launch Services and running apps count as installed; never classify `com.apple.*`. |
+| Apps not opened for 180 days | review | Top-level `/Applications` or `~/Applications` bundles only; never Apple or running apps. Size is the bundle only in v1. |
+| Installer matching an installed app | review | `.dmg`, `.pkg`, or `.zip` in Downloads; move to Trash. |
+| Download added 60 days ago and never opened | review | Requires Spotlight evidence; move to Trash. |
+| Hash-confirmed duplicates | review | Keep the oldest copy, preferring one outside Downloads; move the others to Trash. |
 | Old CLI versions not targeted by the active symlink | rebuilds | Keep the current one plus one. |
 | `.zst` next to the expanded file of the same name | rebuilds | |
 | `node_modules`, `.venv`, `build`, `dist*` in projects untouched 30+ days | rebuilds | `dist-*` was missed by the original script. |

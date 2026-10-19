@@ -6,10 +6,12 @@ private struct GateFacts: SystemFacts {
     var homeDirectory: String
     var now = Date(timeIntervalSince1970: 1_000)
     var running: Set<String> = []
+    var runningNames: Set<String> = []
     var git: GitState?
 
     func isInstalled(bundleID: String) -> Bool { true }
     func isRunning(bundleID: String) -> Bool { running.contains(bundleID) }
+    func isRunning(appNamed: String) -> Bool { runningNames.contains(appNamed) }
     func lastOpened(path: String) -> Date? { nil }
     var spotlightWorks: Bool { true }
     func gitState(repoContaining path: String) -> GitState? { git }
@@ -114,6 +116,35 @@ private func skipReason(_ result: GateResult) -> String? {
 
     #expect(skipReason(SafetyGate.check(finding, current: [scanned], facts: facts))?.contains("Quit") == true)
     #expect(SafetyGate.bundleIdentifier(for: finding) == "com.example.app")
+}
+
+@Test func safetyGateRejectsRunningAppNamedInPath() throws {
+    let home = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).path
+    let scanned = gateItem(path: home + "/Library/Application Support/Slack/Cache")
+    let facts = GateFacts(homeDirectory: home, runningNames: ["Slack"])
+
+    let reason = skipReason(SafetyGate.check(
+        gateFinding(item: scanned),
+        current: [scanned],
+        facts: facts
+    ))
+    #expect(reason?.contains("Quit Slack") == true)
+}
+
+@Test func safetyGateAllowsOwnedTopLevelHomeApplicationBundle() throws {
+    let homeURL = FileManager.default.temporaryDirectory
+        .appendingPathComponent("SweepGate-\(UUID().uuidString)", isDirectory: true)
+    let app = homeURL.appendingPathComponent("Applications/Old.app", isDirectory: true)
+    try FileManager.default.createDirectory(at: app, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: homeURL) }
+    let scanned = gateItem(path: app.path, directory: true)
+    let facts = GateFacts(homeDirectory: homeURL.path)
+
+    #expect(SafetyGate.check(
+        gateFinding(item: scanned, bucket: .review, action: .trash),
+        current: [scanned],
+        facts: facts
+    ) == .ok)
 }
 
 @Test func safetyGateRejectsOutsideHomeAndProtectedRoots() throws {

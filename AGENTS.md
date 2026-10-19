@@ -20,7 +20,9 @@ These protect the user's files. A change that breaks one doesn't ship.
   - AI output types carry no bucket.
   - A `Finding` is only ever created inside `SweepCore`.
 - **The on-device model is the only model.** `scripts/check-no-cloud.sh` fails the build if any cloud model API appears.
-- **Writes stay inside `$HOME`.**
+- **Writes stay inside `$HOME`, except for one narrow app-removal case.**
+  - Sweep may move a top-level `/Applications/<name>.app` bundle to the Trash only when it is owned by the current user.
+  - The same ownership check applies to top-level `~/Applications/<name>.app` bundles.
   - Personal files go to the Trash.
   - Only the "rebuilds itself" bucket is deleted directly.
   - Everything runs as the user, never as root.
@@ -28,7 +30,7 @@ These protect the user's files. A change that breaks one doesn't ship.
   - file ID, edit date and size
   - the owning app isn't running
   - the repo is clean
-  - the path is inside home
+  - the path is inside home, or is the narrow user-owned `/Applications/*.app` exception
 - **Sizes are allocated bytes,** and what's reclaimable is the space only this item uses. Clones, hard links and sparse files are counted once, honestly.
 - **Never read a file flagged `SF_DATALESS`** (an iCloud placeholder), because reading it downloads it.
 - **Tests run against fixture trees built in a temp folder.** The real home folder is only ever scanned, never modified, outside a deliberate manual run.

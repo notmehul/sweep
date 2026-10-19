@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 
 public enum GateResult: Sendable, Hashable {
@@ -35,9 +36,20 @@ public enum SafetyGate {
 
         let home = canonicalPath(facts.homeDirectory)
         for scanned in finding.items {
+            let lexicalPath = URL(fileURLWithPath: scanned.path).standardizedFileURL.path
             let path = canonicalPath(scanned.path)
-            guard isInside(path, directory: home) else {
-                return .skip(reason: "This item is outside your home folder.")
+            let isApplication = isAllowedApplicationBundle(lexicalPath, home: home)
+            if isApplication {
+                guard isAllowedApplicationBundle(path, home: home) else {
+                    return .skip(reason: "This app does not resolve to an allowed Applications folder.")
+                }
+                guard isOwnedByCurrentUser(lexicalPath) else {
+                    return .skip(reason: "This app is not owned by your user account.")
+                }
+            } else {
+                guard isInside(path, directory: home) else {
+                    return .skip(reason: "This item is outside your home folder.")
+                }
             }
             if path == home {
                 return .skip(reason: "Sweep will never remove your home folder.")
@@ -60,9 +72,22 @@ public enum SafetyGate {
             guard refreshed.modified <= scanned.modified else {
                 return .skip(reason: "This item was changed after Sweep scanned it.")
             }
+
+            for component in URL(fileURLWithPath: path).pathComponents {
+                let appName = component.lowercased().hasSuffix(".app")
+                    ? String(component.dropLast(4))
+                    : component
+                if !appName.isEmpty, facts.isRunning(appNamed: appName) {
+                    return .skip(reason: "Quit \(appName), then try again.")
+                }
+            }
         }
 
-        if let bundleID = bundleIdentifier(for: finding), facts.isRunning(bundleID: bundleID) {
+        let applicationBundleID = finding.items.lazy.compactMap {
+            facts.bundleIdentifier(forApplicationAt: $0.path)
+        }.first
+        if let bundleID = bundleIdentifier(for: finding) ?? applicationBundleID,
+           facts.isRunning(bundleID: bundleID) {
             return .skip(reason: "Quit the app that owns this item, then try again.")
         }
 
@@ -106,6 +131,23 @@ public enum SafetyGate {
 
     private static func isInside(_ path: String, directory: String) -> Bool {
         path.hasPrefix(directory + "/")
+    }
+
+    private static func isAllowedApplicationBundle(_ path: String, home: String) -> Bool {
+        let url = URL(fileURLWithPath: path)
+        guard url.pathExtension.lowercased() == "app",
+              !url.deletingPathExtension().lastPathComponent.isEmpty
+        else {
+            return false
+        }
+        let parent = url.deletingLastPathComponent().path
+        return parent == "/Applications"
+            || parent == (home as NSString).appendingPathComponent("Applications")
+    }
+
+    private static func isOwnedByCurrentUser(_ path: String) -> Bool {
+        var status = stat()
+        return lstat(path, &status) == 0 && status.st_uid == getuid()
     }
 
     private static func sizeMatches(scanned: ScannedItem, current: ScannedItem) -> Bool {

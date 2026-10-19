@@ -79,12 +79,25 @@ func everyCatalogRuleHasAMatchingFixture(testCase: RuleFixtureCase) throws {
     items += testCase.companions.map {
         fixture.item($0, now: now, directory: false)
     }
-    let opened = testCase.ruleID == "yours.large-old-files"
+    let requiresOldOpened = [
+        "yours.large-old-files", "generic.unused-apps",
+    ].contains(testCase.ruleID)
+    let opened = requiresOldOpened
         ? [fixture.path(testCase.relativePath): now.addingTimeInterval(-400 * 86_400)]
         : [:]
+    let added = testCase.ruleID == "generic.downloads-never-opened"
+        ? [fixture.path(testCase.relativePath): now.addingTimeInterval(-90 * 86_400)]
+        : [:]
+    let appNames = testCase.ruleID == "generic.installers" ? ["Cursor"] : []
     let engine = RuleEngine(
         rules: rules,
-        facts: CatalogFakeFacts(home: fixture.root.path, now: now, opened: opened)
+        facts: CatalogFakeFacts(
+            home: fixture.root.path,
+            now: now,
+            opened: opened,
+            added: added,
+            appNames: appNames
+        )
     )
 
     let finding = try #require(engine.classify(items).first {
@@ -148,6 +161,14 @@ func everyCatalogRuleHasAMatchingFixture(testCase: RuleFixtureCase) throws {
     #expect(byID["dev.simulator-runtimes"]?.action == .toolCommand(.simctlRuntimeDelete))
     #expect(byID["apps.cursor-snapshots"]?.bucket == .review)
     #expect(byID["yours.secret-looking-names"]?.action == .showOnly)
+    for id in [
+        "generic.orphan-application-support", "generic.orphan-container",
+        "generic.orphan-group-container", "generic.orphan-saved-state",
+        "generic.orphan-preference",
+    ] {
+        #expect(byID[id]?.bucket == .review)
+        #expect(byID[id]?.action == .trash)
+    }
 }
 
 @Test func ruleFamilyNearMissesStayOut() throws {
@@ -277,6 +298,121 @@ func everyCatalogRuleHasAMatchingFixture(testCase: RuleFixtureCase) throws {
         path: fixture.path("Library/Containers/com.example.Installed/Data/Library/Caches"),
         isDirectory: true
     ))
+}
+
+@Test func appleBundleIdentifiersAreNeverOrphans() throws {
+    let fixture = try CatalogFixture()
+    defer { fixture.remove() }
+    let now = Date(timeIntervalSince1970: 2_000_000_000)
+    let engine = RuleEngine(
+        rules: try RuleCatalog.load(),
+        facts: CatalogFakeFacts(home: fixture.root.path, now: now)
+    )
+    let items = [
+        fixture.item("Library/Containers/com.apple.UnknownHelper", now: now),
+        fixture.item(
+            "Library/Preferences/com.apple.UnknownHelper.plist",
+            now: now,
+            directory: false
+        ),
+    ]
+
+    #expect(!engine.classify(items).contains { $0.ruleID.hasPrefix("generic.orphan-") })
+    #expect(!engine.claimsAsUnit(path: items[0].path, isDirectory: true))
+}
+
+@Test func orphanPreferencesAreReviewAndTrash() throws {
+    let fixture = try CatalogFixture()
+    defer { fixture.remove() }
+    let now = Date(timeIntervalSince1970: 2_000_000_000)
+    let finding = try #require(RuleEngine(
+        rules: try RuleCatalog.load(),
+        facts: CatalogFakeFacts(home: fixture.root.path, now: now)
+    ).classify([
+        fixture.item(
+            "Library/Preferences/com.example.Removed.plist",
+            now: now,
+            directory: false
+        ),
+    ]).first)
+
+    #expect(finding.ruleID == "generic.orphan-preference")
+    #expect(finding.bucket == .review)
+    #expect(finding.action == .trash)
+}
+
+@Test func secretLookingNamesAreSpecific() throws {
+    let fixture = try CatalogFixture()
+    defer { fixture.remove() }
+    let now = Date(timeIntervalSince1970: 2_000_000_000)
+    let engine = RuleEngine(
+        rules: try RuleCatalog.load(),
+        facts: CatalogFakeFacts(home: fixture.root.path, now: now)
+    )
+    let matching = [
+        "Documents/recovery-codes.txt", "Documents/id_rsa", "Documents/id_ed25519",
+        "Documents/certificate.pem", "Documents/signing.p12", "Documents/.env",
+        "Documents/my-apikey.txt", "Documents/my-api-key.txt",
+        "Documents/my-api_keys.txt", "Documents/client-secret.txt",
+    ].map { fixture.item($0, now: now, directory: false) }
+    let nearMisses = [
+        "Documents/monkey.jpg", "Documents/keyboard.png", "Documents/keynote",
+    ].map { fixture.item($0, now: now, directory: false) }
+    let findings = engine.classify(matching + nearMisses)
+
+    #expect(findings.filter { $0.ruleID == "yours.secret-looking-names" }.count == matching.count)
+    for nearMiss in nearMisses {
+        #expect(!findings.contains {
+            $0.ruleID == "yours.secret-looking-names" && $0.items.contains(nearMiss)
+        })
+    }
+}
+
+@Test func newReviewRulesRequireTheirSafetyEvidence() throws {
+    let fixture = try CatalogFixture()
+    defer { fixture.remove() }
+    let now = Date(timeIntervalSince1970: 2_000_000_000)
+    let old = now.addingTimeInterval(-200 * 86_400)
+    let unusedPath = fixture.path("Applications/Old Tool.app")
+    let applePath = fixture.path("Applications/Apple Tool.app")
+    let runningPath = fixture.path("Applications/Running Tool.app")
+    let installerPath = fixture.path("Downloads/Cursor-darwin-arm64.dmg")
+    let downloadPath = fixture.path("Downloads/forgotten.txt")
+    let engine = RuleEngine(
+        rules: try RuleCatalog.load(),
+        facts: CatalogFakeFacts(
+            home: fixture.root.path,
+            now: now,
+            running: ["com.example.running"],
+            added: [unusedPath: old, applePath: old, runningPath: old, downloadPath: old],
+            appNames: ["Cursor"],
+            applicationBundleIDs: [
+                unusedPath: "com.example.old",
+                applePath: "com.apple.Tool",
+                runningPath: "com.example.running",
+            ]
+        )
+    )
+    let findings = engine.classify([
+        fixture.item("Applications/Old Tool.app", now: now, daysOld: 200),
+        fixture.item("Applications/Apple Tool.app", now: now, daysOld: 200),
+        fixture.item("Applications/Running Tool.app", now: now, daysOld: 200),
+        fixture.item("Downloads/Cursor-darwin-arm64.dmg", now: now, directory: false),
+        fixture.item("Downloads/forgotten.txt", now: now, daysOld: 200, directory: false),
+    ])
+
+    let unused = try #require(findings.first { $0.ruleID == "generic.unused-apps" })
+    #expect(unused.items.first?.path == unusedPath)
+    #expect(unused.evidence.contains(.neverOpened))
+    #expect(!findings.contains {
+        $0.ruleID == "generic.unused-apps"
+            && ($0.items.first?.path == applePath || $0.items.first?.path == runningPath)
+    })
+    #expect(findings.first { $0.ruleID == "generic.installers" }?
+        .evidence == [.installerForInstalledApp("Cursor")])
+    #expect(findings.first { $0.ruleID == "generic.downloads-never-opened" }?
+        .evidence.contains(.neverOpened) == true)
+    #expect(installerPath.hasSuffix(".dmg"))
 }
 
 @Test func runningAppsAndLiveDatabasesAreNotCleanupCandidates() throws {
