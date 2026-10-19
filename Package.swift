@@ -18,7 +18,8 @@ let package = Package(
         .target(name: "CAttrBulk"),
         .target(name: "SweepSystem", dependencies: ["SweepCore", "CAttrBulk"]),
         .target(name: "SweepRules", dependencies: ["SweepCore"], resources: [.copy("Resources/rules")]),
-        .executableTarget(name: "SweepApp", dependencies: ["SweepCore", "SweepSystem", "SweepRules"]),
+        .target(name: "SweepAI", dependencies: ["SweepCore"]),
+        .executableTarget(name: "SweepApp", dependencies: ["SweepCore", "SweepSystem", "SweepRules", "SweepAI"]),
         .testTarget(
             name: "SweepCoreTests",
             dependencies: ["SweepCore"],
@@ -32,6 +33,11 @@ let package = Package(
         .testTarget(
             name: "SweepRulesTests",
             dependencies: ["SweepRules", "SweepCore"],
+            swiftSettings: testingPluginPath
+        ),
+        .testTarget(
+            name: "SweepAITests",
+            dependencies: ["SweepAI"],
             swiftSettings: testingPluginPath
         ),
     ]
