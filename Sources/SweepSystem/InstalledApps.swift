@@ -64,7 +64,12 @@ public struct InstalledApps: Sendable {
                 continue
             }
 
-            for child in children where child.pathExtension.lowercased() == "app" {
+            // Some installers wrap the app in a localized folder (/Applications/WhatsApp.localized/).
+            let wrapped = children.filter { $0.pathExtension.lowercased() == "localized" }.flatMap {
+                (try? fileManager.contentsOfDirectory(at: $0, includingPropertiesForKeys: [.isDirectoryKey],
+                                                     options: [.skipsHiddenFiles])) ?? []
+            }
+            for child in children + wrapped where child.pathExtension.lowercased() == "app" {
                 let path = child.standardizedFileURL.path
                 guard seen.insert(path).inserted,
                       let values = try? child.resourceValues(forKeys: [.isDirectoryKey]),
@@ -75,9 +80,9 @@ public struct InstalledApps: Sendable {
 
                 let info = Self.infoPlist(at: child)
                 let bundleID = info?["CFBundleIdentifier"] as? String
-                let displayName = (info?["CFBundleDisplayName"] as? String)
+                let displayName = Self.cleanName((info?["CFBundleDisplayName"] as? String)
                     ?? (info?["CFBundleName"] as? String)
-                    ?? child.deletingPathExtension().lastPathComponent
+                    ?? child.deletingPathExtension().lastPathComponent)
                 applications.append(
                     InstalledApplication(
                         path: path,
@@ -94,6 +99,12 @@ public struct InstalledApps: Sendable {
         return applications.sorted {
             $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending
         }
+    }
+
+    /// Some apps ship names with invisible direction marks (WhatsApp's is "\u{200E}WhatsApp").
+    static func cleanName(_ name: String) -> String {
+        String(String.UnicodeScalarView(name.unicodeScalars.filter { $0.properties.generalCategory != .format }))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private static func infoPlist(at application: URL) -> [String: Any]? {

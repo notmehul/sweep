@@ -24,6 +24,12 @@ public final class MacFacts: SystemFacts, CandidateCollectionFacts, @unchecked S
         installedApplications.map(\.displayName)
     }
 
+    public func appName(bundleID: String) -> String? {
+        if let app = installedApplications.first(where: { $0.bundleID == bundleID }) { return app.displayName }
+        guard let url = applicationURLResolver(bundleID) else { return nil }
+        return FileManager.default.displayName(atPath: url.path).replacingOccurrences(of: ".app", with: "")
+    }
+
     public init(
         homeDirectory: String = NSHomeDirectory(),
         now: Date = Date(),

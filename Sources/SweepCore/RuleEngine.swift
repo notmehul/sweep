@@ -46,6 +46,9 @@ public final class RuleEngine: Sendable {
 
             guard let relative = relativePath(item.path) else { continue }
             let owner = owner(for: relative)
+            // macOS's own services (com.apple.*) are usually running, and "never touch system
+            // stuff" is a promise to the user, so their folders never become findings.
+            if relative.split(separator: "/").contains(where: { $0.hasPrefix("com.apple.") }) { continue }
             for compiled in rules {
                 guard matches(compiled, item: item, relative: relative, owner: owner, context: context),
                       let result = conditionResult(
@@ -88,7 +91,10 @@ public final class RuleEngine: Sendable {
                 return left.path < right.path
             }
             guard let kept = sorted.first else { return [] }
-            return sorted.dropFirst().map { duplicate in
+            // Copies inside organised folders are often deliberate (before/after evidence,
+            // dataset snapshots). Offer only stray copies: loose in Downloads or Desktop, or
+            // named like a copy ("report (1).pdf", "report copy.pdf"), and never inside a repo.
+            return sorted.dropFirst().filter(isStrayCopy).map { duplicate in
                 Finding(
                     id: "generic.duplicates:\(duplicate.path)",
                     ruleID: "generic.duplicates",
@@ -108,6 +114,16 @@ public final class RuleEngine: Sendable {
                 )
             }
         }.sorted { $0.id < $1.id }
+    }
+
+    private func isStrayCopy(_ item: ScannedItem) -> Bool {
+        guard facts.gitState(repoContaining: item.path) == nil else { return false }
+        let path = Self.cleanPath(item.path)
+        let parent = URL(fileURLWithPath: path).deletingLastPathComponent().path
+        let loose = [("Downloads"), ("Desktop")].contains { parent == (home as NSString).appendingPathComponent($0) }
+        let name = URL(fileURLWithPath: path).deletingPathExtension().lastPathComponent
+        let copyNamed = name.range(of: #"( \(\d+\)| copy( \d+)?| \d)$"#, options: .regularExpression) != nil
+        return loose || copyNamed
     }
 
     /// Presentation state is kept separate so `Finding` remains the safety contract.
@@ -174,7 +190,8 @@ public final class RuleEngine: Sendable {
         }
         if compiled.rule.id == "yours.secret-looking-names",
            relative.hasPrefix("Library/") || relative.split(separator: "/").dropLast().contains(where: { $0.hasPrefix(".") || $0 == "site-packages" || $0 == "node_modules" })
-            || ["jpg", "jpeg", "png", "gif", "heic", "webp", "mov", "mp4", "mp3"]
+            || ["jpg", "jpeg", "png", "gif", "heic", "webp", "mov", "mp4", "mp3",
+                "swift", "ts", "tsx", "js", "jsx", "py", "go", "rs", "java", "kt", "rb", "md"]
                 .contains((item.path as NSString).pathExtension.lowercased()) {
             return false
         }
@@ -404,10 +421,19 @@ public final class RuleEngine: Sendable {
         lastUsed: LastUsed
     ) -> Finding {
         let values = templateValues(item: item, owner: owner, evidence: evidence)
+        var title = render(rule.title, values: values)
+        var whatItIs = render(rule.explain.whatItIs, values: values)
+        // An app with the same name is still installed under a newer ID (e.g. the old
+        // WhatsApp Desktop vs today's WhatsApp): say so, or it reads like the current app.
+        if rule.id.hasPrefix("generic.orphan"), let app = values["app"],
+           facts.installedApplicationNames.contains(where: { $0.caseInsensitiveCompare(app) == .orderedSame }) {
+            title = "Leftovers from an older \(app)"
+            whatItIs = "This belongs to an older version of \(app) that is no longer installed. The \(app) you use now keeps its data separately and isn't affected."
+        }
         return Finding(
             id: "\(rule.id):\(item.path)",
             ruleID: rule.id,
-            title: render(rule.title, values: values),
+            title: title,
             group: render(rule.group, values: values),
             bucket: rule.bucket,
             items: [item],
@@ -415,7 +441,7 @@ public final class RuleEngine: Sendable {
             lastUsed: lastUsed,
             action: rule.action.action,
             explanation: Explanation(
-                whatItIs: render(rule.explain.whatItIs, values: values),
+                whatItIs: whatItIs,
                 ifRemoved: render(rule.explain.ifRemoved, values: values),
                 whyStale: rule.conditions.requiresSpotlight == true
                     && lastUsed.source != .spotlight
@@ -457,7 +483,7 @@ public final class RuleEngine: Sendable {
         var ordinary = findings.filter { !monthlyIDs.contains($0.ruleID) }
         let grouped = Dictionary(grouping: findings.filter { monthlyIDs.contains($0.ruleID) }) {
             finding -> String in
-            let date = finding.lastUsed?.date ?? finding.items[0].modified
+            let date = Self.captureDate(finding.items[0]) ?? finding.items[0].modified
             let components = Calendar(identifier: .gregorian).dateComponents([.year, .month], from: date)
             return String(format: "%04d-%02d", components.year ?? 0, components.month ?? 0)
         }
@@ -465,7 +491,7 @@ public final class RuleEngine: Sendable {
         for (month, values) in grouped {
             guard let first = values.first else { continue }
             let items = values.flatMap(\.items).sorted { $0.path < $1.path }
-            let date = first.lastUsed?.date ?? first.items[0].modified
+            let date = Self.captureDate(first.items[0]) ?? first.items[0].modified
             let formatter = DateFormatter()
             formatter.locale = Locale(identifier: "en_US_POSIX")
             formatter.calendar = Calendar(identifier: .gregorian)
@@ -473,7 +499,7 @@ public final class RuleEngine: Sendable {
             ordinary.append(Finding(
                 id: "\(first.ruleID):\(month)",
                 ruleID: first.ruleID,
-                title: "Screenshots from \(formatter.string(from: date))",
+                title: "Screenshots and recordings from \(formatter.string(from: date))",
                 group: first.group,
                 bucket: first.bucket,
                 items: items,
@@ -487,6 +513,16 @@ public final class RuleEngine: Sendable {
             ))
         }
         return ordinary.sorted { $0.id < $1.id }
+    }
+
+    /// macOS names captures "Screenshot 2024-09-19 at …"; that date beats the file's mtime.
+    static func captureDate(_ item: ScannedItem) -> Date? {
+        let name = (item.path as NSString).lastPathComponent
+        guard let range = name.range(of: #"\d{4}-\d{2}-\d{2}"#, options: .regularExpression) else { return nil }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.date(from: String(name[range]))
     }
 
     private func templateValues(
@@ -597,13 +633,31 @@ public final class RuleEngine: Sendable {
             "com.microsoft.edgemac": "Edge",
             "com.anthropic.claudefordesktop": "Claude",
             "com.apple.dt.Xcode": "Xcode",
+            "com.openai.chat": "ChatGPT",
+            "com.raycast.macos": "Raycast",
+            "desktop.WhatsApp": "WhatsApp",
+            "company.thebrowser.dia": "Dia",
+            "net.imput.helium": "Helium",
+            "com.docker.docker": "Docker",
+            "com.adguard.safari.AdGuard": "AdGuard",
         ]
-        if let owner, let name = names[owner] { return name }
-        if let owner { return owner.split(separator: ".").last.map(String.init) ?? owner }
+        if let owner, let name = names[owner] ?? facts.appName(bundleID: owner) { return name }
+        if let owner { return Self.readableName(bundleID: owner) }
         let url = URL(fileURLWithPath: path)
         return url.pathExtension.lowercased() == "app"
             ? url.deletingPathExtension().lastPathComponent
             : url.lastPathComponent
+    }
+
+    /// "com.raycast.macos" → "Raycast", "de.janbolz.silicio" → "Silicio": skip the reverse-DNS
+    /// prefix and platform words, keep the product word.
+    static func readableName(bundleID: String) -> String {
+        let generic: Set<String> = ["com", "net", "org", "io", "co", "de", "ru", "us", "app", "apps", "desktop",
+                                    "company", "macos", "mac", "osx", "client", "helper", "extension", "safari", "stable"]
+        let parts = bundleID.split(separator: ".").map(String.init)
+        let candidates = parts.dropFirst().filter { !generic.contains($0.lowercased()) }
+        let word = candidates.last(where: { $0.count > 2 }) ?? candidates.last ?? parts.last ?? bundleID
+        return word.prefix(1).uppercased() + word.dropFirst()
     }
 
     private func ageInDays(since date: Date) -> Int {

@@ -284,7 +284,7 @@ import Testing
         fixture.item("Desktop/Screenshot 2.png", directory: false, modified: march),
     ]).first)
 
-    #expect(finding.title == "Screenshots from March 2026")
+    #expect(finding.title == "Screenshots and recordings from March 2026")
     #expect(finding.items.count == 2)
 }
 

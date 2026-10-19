@@ -1,5 +1,5 @@
 import Foundation
-import SweepCore
+@testable import SweepCore
 import SweepRules
 import Testing
 
@@ -58,4 +58,51 @@ private func classify(_ relatives: [(String, Bool)], repositories: [String] = []
 @Test func secretWarningsIgnoreAppSupportCertificates() throws {
     let findings = try classify([("Library/Application Support/Claude/ca-bundle.pem", false)])
     #expect(!findings.contains { $0.ruleID == "yours.secret-looking-names" })
+}
+
+@Test func leftoversOfAnOlderVersionSayTheCurrentAppIsSafe() throws {
+    let fixture = try CatalogFixture()
+    defer { fixture.remove() }
+    let now = Date(timeIntervalSince1970: 2_000_000_000)
+    let facts = CatalogFakeFacts(home: fixture.root.path, now: now, installed: ["net.whatsapp.WhatsApp"],
+                                 appNames: ["WhatsApp"])
+    let engine = RuleEngine(rules: try RuleCatalog.load(), facts: facts)
+    let finding = try #require(engine.classify([fixture.item("Library/Containers/desktop.WhatsApp", now: now, daysOld: 700)])
+        .first { $0.ruleID == "generic.orphan-container" })
+    #expect(finding.title == "Leftovers from an older WhatsApp")
+    #expect(finding.explanation.whatItIs.contains("isn't affected"))
+    #expect(finding.bucket == .review && finding.action == .trash)
+}
+
+@Test func macOSServiceFoldersNeverBecomeFindings() throws {
+    let findings = try classify([("Library/Caches/com.apple.nsurlsessiond", true), ("Library/Caches/com.spotify.client", true)])
+    #expect(!findings.contains { $0.items.contains { $0.path.contains("com.apple.") } })
+    #expect(findings.contains { $0.items.contains { $0.path.hasSuffix("com.spotify.client") } })
+}
+
+@Test func readableNamesFromBundleIDs() {
+    #expect(RuleEngine.readableName(bundleID: "com.raycast.macos") == "Raycast")
+    #expect(RuleEngine.readableName(bundleID: "de.janbolz.silicio") == "Silicio")
+    #expect(RuleEngine.readableName(bundleID: "desktop.WhatsApp") == "WhatsApp")
+}
+
+@Test func screenshotsGroupByTheDateInTheirName() throws {
+    let findings = try classify([("Desktop/Screenshot 2024-09-19 at 3.20.00 PM.png", false),
+                                 ("Downloads/audit/screenshots/01-robots.png", false),
+                                 (".codex/assets/Screenshot 2025-01-01 at 1.00.00 PM.png", false)])
+    let shots = findings.filter { $0.ruleID == "yours.screenshots-recordings" }
+    #expect(shots.map(\.title) == ["Screenshots and recordings from September 2024"])
+}
+
+@Test func onlyStrayDuplicatesAreOffered() throws {
+    let fixture = try CatalogFixture()
+    defer { fixture.remove() }
+    let now = Date(timeIntervalSince1970: 2_000_000_000)
+    let engine = RuleEngine(rules: try RuleCatalog.load(), facts: CatalogFakeFacts(home: fixture.root.path, now: now))
+    let deliberate = [fixture.item("Documents/audit/old/shot.png", now: now, daysOld: 10, directory: false),
+                      fixture.item("Documents/audit/new/shot.png", now: now, daysOld: 5, directory: false)]
+    let stray = [fixture.item("Documents/report.pdf", now: now, daysOld: 10, directory: false),
+                 fixture.item("Downloads/report (1).pdf", now: now, daysOld: 5, directory: false)]
+    #expect(engine.classifyDuplicates([deliberate]).isEmpty)
+    #expect(engine.classifyDuplicates([stray]).map { $0.items[0].path }.first?.hasSuffix("report (1).pdf") == true)
 }

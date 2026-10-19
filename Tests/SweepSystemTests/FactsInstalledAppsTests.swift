@@ -164,3 +164,7 @@ private struct FactsFixture {
         )
     }
 }
+
+@Test func appNamesDropInvisibleDirectionMarks() {
+    #expect(InstalledApps.cleanName("\u{200E}WhatsApp") == "WhatsApp")
+}

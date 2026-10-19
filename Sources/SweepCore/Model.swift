@@ -153,6 +153,8 @@ public protocol SystemFacts: Sendable {
     func lastOpened(path: String) -> Date?
     /// Spotlight date-added metadata, used only where install/download age is required.
     func dateAdded(path: String) -> Date?
+    /// Display name of an app by bundle ID, when macOS knows it.
+    func appName(bundleID: String) -> String?
     var spotlightWorks: Bool { get }
     /// nil when git (Command Line Tools) is not installed or path is not in a repo.
     func gitState(repoContaining path: String) -> GitState?
@@ -165,6 +167,7 @@ public extension SystemFacts {
     func bundleIdentifier(forApplicationAt path: String) -> String? { nil }
     var installedApplicationNames: [String] { [] }
     func dateAdded(path: String) -> Date? { nil }
+    func appName(bundleID: String) -> String? { nil }
 }
 
 public struct GitState: Sendable, Hashable {

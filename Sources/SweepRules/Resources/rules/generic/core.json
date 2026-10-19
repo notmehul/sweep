@@ -73,7 +73,7 @@
     "bucket": "review",
     "action": "trash",
     "group": "Files left by removed apps",
-    "title": "{app} files",
+    "title": "Leftovers from {app}",
     "explain": {
       "whatItIs": "These files belonged to an app that is no longer installed.",
       "ifRemoved": "Nothing currently installed needs them.",
@@ -94,7 +94,7 @@
     "bucket": "review",
     "action": "trash",
     "group": "Files left by removed apps",
-    "title": "{app} private files",
+    "title": "Leftovers from {app}",
     "explain": {
       "whatItIs": "This private app folder was left behind after its app was removed.",
       "ifRemoved": "No installed app with this name uses it.",
@@ -115,7 +115,7 @@
     "bucket": "review",
     "action": "trash",
     "group": "Files left by removed apps",
-    "title": "{app} shared files",
+    "title": "Shared leftovers from {app}",
     "explain": {
       "whatItIs": "Apps from the same maker used this folder to share information.",
       "ifRemoved": "No installed app with this name needs it.",
@@ -157,7 +157,7 @@
     "bucket": "review",
     "action": "trash",
     "group": "Files left by removed apps",
-    "title": "{app} settings",
+    "title": "Old {app} settings",
     "explain": {
       "whatItIs": "These are settings for an app that is no longer installed.",
       "ifRemoved": "No installed app with this name needs them.",
@@ -314,7 +314,7 @@
   {
     "id": "yours.screenshots-recordings",
     "match": {
-      "regex": "(?i)(^|/)(Screenshot|Screen Shot|Screen Recording).+\\.(png|jpg|jpeg|mov|mp4)$"
+      "regex": "(?i)^(?!(.*/)?\\.)(.*/)?(Screenshot|Screen Shot|Screen Recording)[^/]*\\.(png|jpg|jpeg|heic|mov|mp4)$"
     },
     "conditions": {},
     "bucket": "yours",
