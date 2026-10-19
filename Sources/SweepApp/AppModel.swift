@@ -10,6 +10,8 @@ struct ScanReport: Sendable {
     var coverage: Double
     var isDeveloper: Bool
     var summary: String
+    /// Used space on the disk, for the before/after bar.
+    var usedBytes: Int64
 }
 
 enum ScanUpdate: Sendable {
@@ -23,7 +25,9 @@ protocol ScanSource: Sendable {
 }
 
 struct CleanOutcome: Sendable {
+    /// Space actually freed by deletions (Trash frees nothing until it's emptied).
     var freedBytes: Int64
+    var trashedBytes: Int64
     var deletedCount: Int
     var trashedCount: Int
     var skipped: [(title: String, reason: String)]
@@ -34,6 +38,12 @@ struct CleanOutcome: Sendable {
 protocol Cleaner: Sendable {
     func clean(_ findings: [Finding]) async -> CleanOutcome
     func undoLast() async -> Bool
+    /// Remembers "keep this, don't ask again".
+    func keep(_ finding: Finding)
+}
+
+extension Cleaner {
+    func keep(_ finding: Finding) {}
 }
 
 @MainActor @Observable
@@ -116,6 +126,7 @@ final class AppModel {
     }
 
     func keep(_ finding: Finding) {
+        cleaner.keep(finding)
         kept.insert(finding.id)
         selection.remove(finding.id)
     }

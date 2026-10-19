@@ -32,7 +32,8 @@ public struct Walker: Sendable {
         roots: [String],
         totalBytes: Int64,
         claimsAsUnit: @escaping @Sendable (String, Bool) -> Bool,
-        sunburstDepth: Int = 4
+        sunburstDepth: Int = 4,
+        excluding excluded: Set<String> = []
     ) -> AsyncStream<WalkEvent> {
         AsyncStream { continuation in
             let task = Task.detached(priority: .utility) {
@@ -41,6 +42,7 @@ public struct Walker: Sendable {
                     totalBytes: totalBytes,
                     claimsAsUnit: claimsAsUnit,
                     sunburstDepth: max(0, sunburstDepth),
+                    excluded: excluded,
                     continuation: continuation
                 )
                 await operation.run()
@@ -178,6 +180,8 @@ private struct WalkOperation: Sendable {
     let totalBytes: Int64
     let claimsAsUnit: @Sendable (String, Bool) -> Bool
     let sunburstDepth: Int
+    /// Directories never opened, e.g. privacy-protected folders that would trigger a prompt.
+    let excluded: Set<String>
     let continuation: AsyncStream<WalkEvent>.Continuation
     let hardLinks = HardLinkRegistry()
 
@@ -518,6 +522,7 @@ private struct WalkOperation: Sendable {
     }
 
     private func readDirectory(path: String, rootDevice: Int32) -> DirectoryRead {
+        guard !excluded.contains(path) else { return .unreadable }
         let descriptor = open(path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
         guard descriptor >= 0 else {
             return errno == EACCES || errno == EPERM ? .unreadable : .skipped

@@ -24,7 +24,8 @@ struct DemoSource: ScanSource {
                 }
                 continuation.yield(.finished(ScanReport(
                     tree: tree, findings: Self.findings, coverage: 1, isDeveloper: true,
-                    summary: "Most of it is Cursor's search index, app caches, and two apps you haven't opened since March.")))
+                    summary: "Most of it is Cursor's search index, app caches, and two apps you haven't opened since March.",
+                    usedBytes: total)))
                 continuation.finish()
             }
             continuation.onTermination = { _ in task.cancel() }
@@ -132,7 +133,8 @@ struct DemoSource: ScanSource {
 struct DemoCleaner: Cleaner {
     func clean(_ findings: [Finding]) async -> CleanOutcome {
         try? await Task.sleep(for: .seconds(2.2))
-        return CleanOutcome(freedBytes: findings.reduce(0) { $0 + $1.reclaimableSize },
+        return CleanOutcome(freedBytes: findings.filter { $0.action != .trash }.reduce(0) { $0 + $1.reclaimableSize },
+                            trashedBytes: findings.filter { $0.action == .trash }.reduce(0) { $0 + $1.reclaimableSize },
                             deletedCount: findings.filter { $0.action == .delete }.count,
                             trashedCount: findings.filter { $0.action == .trash }.count,
                             skipped: [], canUndo: true)

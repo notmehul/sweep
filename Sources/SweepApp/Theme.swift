@@ -84,8 +84,22 @@ private extension NSColor {
 }
 
 enum Format {
+    /// "7.7 GB", "631 MB", "48 KB": one decimal only where it carries meaning.
     static func bytes(_ value: Int64) -> String {
-        ByteCountFormatter.string(fromByteCount: value, countStyle: .file)
+        let v = Double(max(0, value))
+        switch v {
+        case 1e12...: return String(format: "%.1f TB", v / 1e12)
+        case 1e11..<1e12: return String(format: "%.0f GB", v / 1e9)
+        case 1e9..<1e11: return String(format: "%.1f GB", v / 1e9)
+        case 1e6..<1e9: return String(format: "%.0f MB", v / 1e6)
+        case 1e3..<1e6: return String(format: "%.0f KB", v / 1e3)
+        default: return "\(Int(v)) bytes"
+        }
+    }
+
+    static func tilde(_ path: String) -> String {
+        let home = NSHomeDirectory()
+        return path.hasPrefix(home) ? "~" + path.dropFirst(home.count) : path
     }
 
     /// Splits "38.4 GB" into ("38.4", "GB") for the large display numeral.

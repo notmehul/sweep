@@ -2,16 +2,34 @@ import AppKit
 import SweepCore
 import SwiftUI
 
+/// One line in the list. Findings with the same title (an app's several cache folders,
+/// say) collapse into one row, so people choose per app rather than per folder.
+struct FindingRowModel: Identifiable {
+    let id: String
+    let group: String
+    let findings: [Finding]
+
+    var title: String { findings[0].title }
+    var size: Int64 { findings.reduce(0) { $0 + $1.reclaimableSize } }
+    var lastUsed: Date? { findings.compactMap(\.lastUsed?.date).max() }
+    var paths: [String] { findings.flatMap { $0.items.map(\.path) } }
+
+    static func rows(for findings: [Finding]) -> [FindingRowModel] {
+        Dictionary(grouping: findings) { "\($0.group)\u{1F}\($0.title)" }
+            .map { FindingRowModel(id: $0.key, group: $0.value[0].group, findings: $0.value) }
+    }
+}
+
 struct BucketScreen: View {
     var model: AppModel
     var bucket: Bucket
-    @ViewState private var focused: Finding.ID?
+    @ViewState private var focused: FindingRowModel.ID?
 
-    private var findings: [Finding] { model.visibleFindings(in: bucket) }
-    private var groups: [(String, [Finding])] {
-        Dictionary(grouping: findings, by: \.group)
-            .map { ($0.key, $0.value.sorted { $0.reclaimableSize > $1.reclaimableSize }) }
-            .sorted { $0.1.reduce(0) { $0 + $1.reclaimableSize } > $1.1.reduce(0) { $0 + $1.reclaimableSize } }
+    private var rows: [FindingRowModel] { FindingRowModel.rows(for: model.visibleFindings(in: bucket)) }
+    private var groups: [(String, [FindingRowModel])] {
+        Dictionary(grouping: rows, by: \.group)
+            .map { ($0.key, $0.value.sorted { $0.size > $1.size }) }
+            .sorted { $0.1.reduce(0) { $0 + $1.size } > $1.1.reduce(0) { $0 + $1.size } }
     }
 
     var body: some View {
@@ -26,7 +44,7 @@ struct BucketScreen: View {
             Rectangle().fill(Theme.hairline).frame(height: 1)
             footer
         }
-        .onAppear { focused = findings.first?.id }
+        .onAppear { focused = groups.first?.1.first?.id }
     }
 
     private var header: some View {
@@ -57,19 +75,19 @@ struct BucketScreen: View {
     private var list: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0, pinnedViews: .sectionHeaders) {
-                if findings.isEmpty {
+                if rows.isEmpty {
                     Text("Nothing here. Your Mac is tidy in this area.")
                         .font(Theme.body).foregroundStyle(Theme.secondary).padding(28)
                 }
                 ForEach(groups, id: \.0) { group, items in
                     Section {
-                        ForEach(items) { finding in
-                            FindingRow(finding: finding,
+                        ForEach(items) { row in
+                            FindingRow(row: row,
                                        selectable: bucket != .yours,
-                                       selected: model.selection.contains(finding.id),
-                                       focused: focused == finding.id,
-                                       toggle: { model.toggle(finding) },
-                                       focus: { focused = finding.id })
+                                       selection: selectionState(row),
+                                       focused: focused == row.id,
+                                       toggle: { toggle(row) },
+                                       focus: { focused = row.id })
                         }
                     } header: {
                         Text(group)
@@ -88,12 +106,12 @@ struct BucketScreen: View {
     }
 
     @ViewBuilder private var inspector: some View {
-        if let finding = findings.first(where: { $0.id == focused }) {
-            FindingInspector(finding: finding, keep: {
-                model.keep(finding)
-                focused = findings.first?.id
+        if let row = rows.first(where: { $0.id == focused }) {
+            FindingInspector(row: row, keep: {
+                row.findings.forEach(model.keep)
+                focused = rows.first?.id
             })
-            .id(finding.id)
+            .id(row.id)
             .transition(.opacity)
         } else {
             Color.clear
@@ -102,10 +120,10 @@ struct BucketScreen: View {
 
     private var footer: some View {
         HStack {
-            let selectedHere = findings.filter { model.selection.contains($0.id) }
+            let selectedHere = rows.filter { selectionState(row: $0) != .off }
             Text(bucket == .yours
                  ? "Sweep only shows these. Open them in Finder to decide."
-                 : "\(selectedHere.count) of \(findings.count) selected here")
+                 : "\(selectedHere.count) of \(rows.count) selected here")
                 .font(Theme.caption)
                 .foregroundStyle(Theme.secondary)
             Spacer()
@@ -119,12 +137,28 @@ struct BucketScreen: View {
         .padding(.horizontal, 28)
         .padding(.vertical, 14)
     }
+
+    private func selectionState(_ row: FindingRowModel) -> SelectionState { selectionState(row: row) }
+
+    private func selectionState(row: FindingRowModel) -> SelectionState {
+        let picked = row.findings.filter { model.selection.contains($0.id) }.count
+        return picked == 0 ? .off : (picked == row.findings.count ? .on : .mixed)
+    }
+
+    private func toggle(_ row: FindingRowModel) {
+        let select = selectionState(row: row) != .on
+        for finding in row.findings {
+            if select { model.selection.insert(finding.id) } else { model.selection.remove(finding.id) }
+        }
+    }
 }
 
+enum SelectionState { case on, off, mixed }
+
 struct FindingRow: View {
-    var finding: Finding
+    var row: FindingRowModel
     var selectable: Bool
-    var selected: Bool
+    var selection: SelectionState
     var focused: Bool
     var toggle: () -> Void
     var focus: () -> Void
@@ -133,19 +167,20 @@ struct FindingRow: View {
     var body: some View {
         HStack(spacing: 12) {
             if selectable {
-                Toggle("", isOn: Binding(get: { selected }, set: { _ in toggle() }))
+                Toggle("", isOn: Binding(get: { selection == .on }, set: { _ in toggle() }))
                     .toggleStyle(.checkbox)
                     .labelsHidden()
-                    .accessibilityLabel("Select \(finding.title)")
+                    .accessibilityLabel("Select \(row.title)")
             }
-            FileIcon(path: finding.items.first?.path ?? "")
+            FileIcon(path: row.paths.first ?? "")
             VStack(alignment: .leading, spacing: 2) {
-                Text(finding.title).font(.system(size: 14, weight: .medium)).foregroundStyle(Theme.text).lineLimit(1)
-                Text(Format.relative(finding.lastUsed?.date))
+                Text(row.title).font(.system(size: 14, weight: .medium)).foregroundStyle(Theme.text).lineLimit(1)
+                Text(row.findings.count > 1 ? "\(row.findings.count) folders · \(Format.relative(row.lastUsed))"
+                                            : Format.relative(row.lastUsed))
                     .font(Theme.caption).foregroundStyle(Theme.secondary)
             }
             Spacer(minLength: 8)
-            Text(Format.bytes(finding.reclaimableSize)).font(Theme.rowNumber).foregroundStyle(Theme.text)
+            Text(Format.bytes(row.size)).font(Theme.rowNumber).foregroundStyle(Theme.text)
         }
         .padding(.horizontal, 28)
         .padding(.vertical, 9)
@@ -159,41 +194,46 @@ struct FindingRow: View {
 }
 
 struct FindingInspector: View {
-    var finding: Finding
+    var row: FindingRowModel
     var keep: () -> Void
 
     var body: some View {
+        let finding = row.findings[0]
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: 12) {
-                    FileIcon(path: finding.items.first?.path ?? "", size: 40)
+                    FileIcon(path: row.paths.first ?? "", size: 40)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(finding.title).font(Theme.headline).foregroundStyle(Theme.text)
-                        Text(Format.bytes(finding.reclaimableSize)).font(Theme.number).foregroundStyle(Theme.secondary)
+                        Text(row.title).font(Theme.headline).foregroundStyle(Theme.text)
+                        Text(Format.bytes(row.size)).font(Theme.number).foregroundStyle(Theme.secondary)
                     }
                 }
                 answer("What it is", finding.explanation.whatItIs).padding(.top, 22)
                 answer("If you remove it", finding.explanation.ifRemoved)
                 answer("Why Sweep flagged it", finding.explanation.whyStale)
 
-                if let path = finding.items.first?.path {
-                    Text(path)
+                ForEach(row.paths.prefix(3), id: \.self) { path in
+                    Text(Format.tilde(path))
                         .font(.system(size: 12).monospaced())
                         .foregroundStyle(Theme.secondary)
                         .lineLimit(2)
                         .truncationMode(.middle)
                         .textSelection(.enabled)
                         .padding(.top, 4)
-                    HStack(spacing: 4) {
-                        Button("Show in Finder") {
-                            NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: Self.expand(path))])
-                        }
-                        Button("Keep, don't ask again", action: keep)
-                    }
-                    .buttonStyle(QuietButtonStyle())
-                    .padding(.top, 8)
-                    .padding(.leading, -14)
                 }
+                if row.paths.count > 3 {
+                    Text("and \(row.paths.count - 3) more")
+                        .font(Theme.caption).foregroundStyle(Theme.secondary).padding(.top, 4)
+                }
+                HStack(spacing: 4) {
+                    Button("Show in Finder") {
+                        NSWorkspace.shared.activateFileViewerSelecting(row.paths.prefix(10).map { URL(fileURLWithPath: Self.expand($0)) })
+                    }
+                    Button("Keep, don't ask again", action: keep)
+                }
+                .buttonStyle(QuietButtonStyle())
+                .padding(.top, 8)
+                .padding(.leading, -14)
             }
             .padding(24)
         }

@@ -130,7 +130,7 @@ struct ScanScreen: View {
         let fraction = progress?.fraction ?? 0
         HStack(spacing: 64) {
             SunburstView(
-                segments: model.liveTree.map { SunburstLayout.segments(for: $0, total: DemoSource.tree.allocatedSize) } ?? [],
+                segments: model.liveTree.map { SunburstLayout.segments(for: $0, total: progress?.totalBytes) } ?? [],
                 progress: fraction, showsBeam: true,
                 centerTitle: "Scanning", centerSubtitle: Format.bytes(progress?.scannedBytes ?? 0),
                 hovered: $hovered)
@@ -151,8 +151,7 @@ struct ScanScreen: View {
                     .padding(.top, 4)
 
                 VStack(spacing: 0) {
-                    StatRow(label: "Checked", value: progress.map {
-                        "\(Format.bytes($0.scannedBytes)) of \(Format.bytes($0.totalBytes))" } ?? "–")
+                    StatRow(label: "Checked", value: progress.map { Format.bytes($0.scannedBytes) } ?? "–")
                     StatRow(label: "Files", value: progress.map { Format.count($0.filesSeen) } ?? "–")
                 }
                 .padding(.top, 28)
@@ -219,7 +218,7 @@ struct ResultsScreen: View {
                     VStack(spacing: 0) {
                         ForEach([Bucket.rebuilds, .review, .yours], id: \.self) { bucket in
                             BucketRow(bucket: bucket, size: model.total(of: bucket),
-                                      count: model.visibleFindings(in: bucket).count) {
+                                      count: FindingRowModel.rows(for: model.visibleFindings(in: bucket)).count) {
                                 model.screen = .bucket(bucket)
                             }
                             if bucket != .yours { Rectangle().fill(Theme.hairline).frame(height: 1).padding(.leading, 56) }
@@ -229,7 +228,7 @@ struct ResultsScreen: View {
                     .padding(.top, 24)
 
                     if report.coverage < 0.99 {
-                        Label("Sweep could see \(Int(report.coverage * 100))% of your Mac. Allow Full Disk Access to see the rest.",
+                        Label("Some app folders were hidden from Sweep. Allow Full Disk Access to see everything.",
                               systemImage: "eye.slash")
                             .font(Theme.caption)
                             .foregroundStyle(Theme.secondary)

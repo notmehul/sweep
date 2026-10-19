@@ -294,3 +294,19 @@ func HomeBench() async throws {
         #expect(final.allocatedSize == subtree.allocatedSize)
     }
 }
+
+@Test func excludedFoldersAreNeverOpened() async throws {
+    let fixture = try FixtureTree()
+    defer { fixture.remove() }
+    _ = try fixture.regularFile("open/a.bin", size: 1024 * 1024)
+    let guarded = try fixture.directory("guarded")
+    _ = try fixture.regularFile("guarded/b.bin", size: 1024 * 1024)
+
+    let events = await collect(Walker().scan(
+        roots: [fixture.root.path], totalBytes: 2 * 1024 * 1024,
+        claimsAsUnit: { _, _ in false }, excluding: [guarded.path]
+    ))
+    let result = try #require(events.result)
+    #expect(result.unreadablePaths.contains(guarded.path))
+    #expect(result.totalAllocated < 2 * 1024 * 1024)
+}
