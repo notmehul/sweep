@@ -28,6 +28,39 @@ extension AppModel {
         }
     }
 
+    /// Asks the on-device model for the sentence under a bucket's title. Keyed by the bucket's
+    /// size and row count, so keeping an item or rescanning asks again. Without Apple
+    /// Intelligence nothing is stored and the screen keeps its fixed subtitle.
+    func summarizeBucket(_ bucket: Bucket) {
+        let rows = FindingRowModel.rows(for: visibleFindings(in: bucket)).sorted { $0.size > $1.size }
+        let key = bucketSummaryKey(bucket, rows: rows)
+        guard !rows.isEmpty, bucketSummaries[key] == nil else { return }
+        let kind: BucketSummaryFacts.Kind = switch bucket {
+        case .rebuilds: .rebuilds
+        case .review: .review
+        case .yours, .dontTouch: .yours
+        }
+        let facts = BucketSummaryFacts(
+            kind: kind,
+            totalBytes: rows.reduce(0) { $0 + $1.size },
+            itemCount: rows.count,
+            largest: rows.prefix(3).map { .init(title: $0.title, group: $0.group, allocatedBytes: $0.size) }
+        )
+        Task {
+            if let sentence = await OnDeviceExplainer().summarizeBucket(facts) {
+                bucketSummaries[key] = sentence
+            }
+        }
+    }
+
+    func bucketSummary(for bucket: Bucket) -> String? {
+        bucketSummaries[bucketSummaryKey(bucket, rows: FindingRowModel.rows(for: visibleFindings(in: bucket)))]
+    }
+
+    private func bucketSummaryKey(_ bucket: Bucket, rows: [FindingRowModel]) -> String {
+        "\(bucket.rawValue)|\(rows.count)|\(rows.reduce(0) { $0 + $1.size })"
+    }
+
     /// Facts only: names, sizes, counts and dates. File contents never leave the disk, and
     /// these facts never leave the Mac (the model runs on it).
     nonisolated static func folderFacts(for segment: SunburstSegment, in tree: SizeNode) -> FolderFacts {

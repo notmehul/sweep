@@ -41,4 +41,4 @@ The Command Line Tools ship no macro plugins for SwiftUI, SwiftData or Foundatio
   - `SWEEP_APPEARANCE=light|dark` pins the appearance for screenshots.
   - `SWEEP_AUTOSCAN=1` starts a scan on launch (with `open -g --env`), so no clicks are needed.
   - `SWEEP_DEMO=1` replays sample data through `DemoSource`/`DemoCleaner` instead of the real engine.
-  - `SWEEP_SCREEN=history` opens the history screen; `SWEEP_INSPECT=<folder name>` opens that folder's card on the results screen.
+  - `SWEEP_SCREEN=history` opens the history screen, and `SWEEP_SCREEN=rebuilds|review|yours` opens that group after a scan; `SWEEP_INSPECT=<folder name>` opens that folder's card on the results screen.

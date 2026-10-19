@@ -120,3 +120,37 @@ public struct ChangeFact: Sendable, Equatable {
         self.period = period
     }
 }
+
+/// Facts for the sentence under a group's title on the bucket screen.
+public struct BucketSummaryFacts: Sendable, Equatable {
+    /// What happens to the group's items. Sweep states it in its own words; the model only
+    /// describes what the space is.
+    public enum Kind: String, Sendable {
+        case rebuilds, review, yours
+    }
+
+    public struct Item: Sendable, Equatable {
+        public var title: String
+        /// The list section it sits in, e.g. "Apps you don't use", so the model knows what it is.
+        public var group: String
+        public var allocatedBytes: Int64
+
+        public init(title: String, group: String, allocatedBytes: Int64) {
+            self.title = title
+            self.group = group
+            self.allocatedBytes = allocatedBytes
+        }
+    }
+
+    public var kind: Kind
+    public var totalBytes: Int64
+    public var itemCount: Int
+    public var largest: [Item]
+
+    public init(kind: Kind, totalBytes: Int64, itemCount: Int, largest: [Item]) {
+        self.kind = kind
+        self.totalBytes = totalBytes
+        self.itemCount = itemCount
+        self.largest = Array(largest.prefix(3))
+    }
+}

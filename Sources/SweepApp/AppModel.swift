@@ -75,6 +75,8 @@ final class AppModel {
     var inspectedFolder: SunburstSegment?
     /// On-device explanations, cached per folder path for the session.
     var insights: [String: FolderInsight] = [:]
+    /// On-device sentences for the bucket screens, keyed by what they describe (see `bucketSummaryKey`).
+    var bucketSummaries: [String: String] = [:]
     var confirming = false
     var cleanups: [CleanupRecord] = []
     var isLoadingHistory = false

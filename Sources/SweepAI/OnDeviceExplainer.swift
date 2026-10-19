@@ -87,6 +87,31 @@ public struct OnDeviceExplainer: Explaining {
         }
     }
 
+    /// The model's sentence about what most of the space is, followed by Sweep's own sentence
+    /// about what happens to these items. nil keeps the fixed subtitle.
+    public func summarizeBucket(_ facts: BucketSummaryFacts) async -> String? {
+        guard !facts.largest.isEmpty, model.availability == .available else { return nil }
+        let prompt = bucketPrompt(facts)
+
+        do {
+            guard try await fits(prompt: prompt, schema: GeneratedText.generationSchema, responseTokens: 120) else {
+                return nil
+            }
+            let session = LanguageModelSession(model: model, instructions: Self.instructions)
+            let response = try await session.respond(
+                to: prompt,
+                generating: GeneratedText.self,
+                options: GenerationOptions(samplingMode: .greedy, maximumResponseTokens: 120)
+            )
+            var text = response.content.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let last = text.last, !".!?".contains(last) { text += "." }
+            guard ModelOutputFilter.acceptsBucketSummary(text, allowedFactText: prompt) else { return nil }
+            return text + " " + Self.fate(of: facts.kind)
+        } catch {
+            return nil
+        }
+    }
+
     public func narrate(_ changes: [ChangeFact]) async -> String? {
         guard !changes.isEmpty, model.availability == .available else { return nil }
         let prompt = changePrompt(changes)
@@ -156,6 +181,31 @@ public struct OnDeviceExplainer: Explaining {
             Not offered for removal: \(ByteText.format(facts.perBucketBytes.dontTouch))
             Largest findings: \(findings.isEmpty ? "none" : findings)
             Coverage: \(coverage)%
+            """
+    }
+
+    /// What happens to a group's items. Fixed wording: the rules know this for certain, and a
+    /// model guessing it once called a cache "lost if removed".
+    static func fate(of kind: BucketSummaryFacts.Kind) -> String {
+        switch kind {
+        case .rebuilds: "Apps download or rebuild these when they need them."
+        case .review: "They go to the Trash, so you can put them back."
+        case .yours: "Sweep only shows these and never removes them."
+        }
+    }
+
+    private func bucketPrompt(_ facts: BucketSummaryFacts) -> String {
+        let largest = facts.largest.map {
+            "\($0.title) (\($0.group)): \(ByteText.format($0.allocatedBytes))"
+        }.joined(separator: "; ")
+
+        return """
+            In one short sentence, say what most of the space in this list is, naming the largest items
+            with their sizes. Only describe what they are. Do not say what removing them does. Do not repeat the total.
+            Shape (fill in from the facts): "Most of this is <what the first item is> (<its size>) and <what the second is> (<its size>)."
+            Total: \(ByteText.format(facts.totalBytes))
+            Items: \(facts.itemCount)
+            Largest items, with the section each is listed under: \(largest)
             """
     }
 

@@ -44,7 +44,11 @@ struct BucketScreen: View {
             Rectangle().fill(Theme.hairline).frame(height: 1)
             footer
         }
-        .onAppear { focused = groups.first?.1.first?.id }
+        .onAppear {
+            focused = groups.first?.1.first?.id
+            model.summarizeBucket(bucket)
+        }
+        .onChange(of: model.total(of: bucket)) { model.summarizeBucket(bucket) }
     }
 
     private var header: some View {
@@ -59,10 +63,20 @@ struct BucketScreen: View {
             .padding(.leading, -8)
 
             BucketBadge(bucket: bucket)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(Theme.title(for: bucket)).font(Theme.title).foregroundStyle(Theme.text)
-                Text(Theme.blurb(for: bucket)).font(Theme.caption).foregroundStyle(Theme.secondary)
+                if let summary = model.bucketSummary(for: bucket) {
+                    Text(summary).font(Theme.body).foregroundStyle(Theme.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: 640, alignment: .leading)
+                        .transition(.opacity)
+                    Label("Written by AI", systemImage: "sparkles")
+                        .font(.system(size: 12)).foregroundStyle(Theme.secondary)
+                } else {
+                    Text(Theme.blurb(for: bucket)).font(Theme.caption).foregroundStyle(Theme.secondary)
+                }
             }
+            .animation(.easeOut(duration: 0.25), value: model.bucketSummary(for: bucket))
             Spacer()
             Text(Format.bytes(model.total(of: bucket))).font(.system(size: 22, weight: .light).monospacedDigit())
                 .foregroundStyle(Theme.text)

@@ -228,6 +228,11 @@ struct ResultsScreen: View {
                        let hit = SunburstLayout.segments(for: report.tree).first(where: { $0.name == name }) {
                         model.inspect(hit)
                     }
+                    // Dev aid: SWEEP_SCREEN=rebuilds|review|yours opens that group's screen.
+                    if let name = ProcessInfo.processInfo.environment["SWEEP_SCREEN"],
+                       let bucket = Bucket(rawValue: name) {
+                        model.screen = .bucket(bucket)
+                    }
                 }
 
                 VStack(alignment: .leading, spacing: 0) {
