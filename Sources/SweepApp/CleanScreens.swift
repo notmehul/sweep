@@ -20,7 +20,7 @@ struct ConfirmSheet: View {
             VStack(spacing: 0) {
                 if !deleting.isEmpty {
                     PlanRow(symbol: "arrow.triangle.2.circlepath", tint: Theme.accent,
-                            title: "Delete \(deleting.count) \(deleting.count == 1 ? "item" : "items") that rebuild themselves",
+                            title: deleting.count == 1 ? "Delete 1 item that rebuilds itself" : "Delete \(deleting.count) items that rebuild themselves",
                             detail: "Apps recreate these when they need them.",
                             size: deleting.reduce(0) { $0 + $1.reclaimableSize })
                 }
@@ -146,7 +146,7 @@ struct DoneScreen: View {
 
     private func summary(_ o: CleanOutcome) -> String {
         var parts: [String] = []
-        if o.deletedCount > 0 { parts.append("Deleted \(o.deletedCount) \(o.deletedCount == 1 ? "item" : "items") that rebuild themselves.") }
+        if o.deletedCount > 0 { parts.append(o.deletedCount == 1 ? "Deleted 1 item that rebuilds itself." : "Deleted \(o.deletedCount) items that rebuild themselves.") }
         if o.trashedCount > 0 { parts.append("Moved \(o.trashedCount) to the Trash (\(Format.bytes(o.trashedBytes))). Empty the Trash to free that space too.") }
         parts.append("If free space looks lower than this in Finder, macOS is still holding some of it in a snapshot. It's released over the next few hours.")
         return parts.joined(separator: " ")
@@ -164,7 +164,7 @@ struct UsageBar: View {
             HStack {
                 Text(label).foregroundStyle(Theme.secondary)
                 Spacer()
-                Text(Format.bytes(used) + " used").foregroundStyle(Theme.text).contentTransition(.numericText())
+                Text(Format.precise(used) + " used").foregroundStyle(Theme.text).contentTransition(.numericText())
             }
             .font(Theme.number)
             GeometryReader { geo in

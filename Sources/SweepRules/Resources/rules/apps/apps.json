@@ -1,8 +1,12 @@
 [
   {
     "id": "apps.cursor-snapshots",
-    "match": { "regex": "^Library/Application Support/Cursor/User/workspaceStorage/.+/snapshots/(codebases|stores)$" },
-    "conditions": { "appNotRunning": "com.todesktop.230313mzl4w4u92" },
+    "match": {
+      "regex": "^Library/Application Support/Cursor/User/workspaceStorage/.+/snapshots/(codebases|stores)$"
+    },
+    "conditions": {
+      "appNotRunning": "com.todesktop.230313mzl4w4u92"
+    },
     "bucket": "review",
     "action": "trash",
     "group": "Cursor search history",
@@ -18,8 +22,12 @@
   },
   {
     "id": "apps.cursor-extension-downloads",
-    "match": { "pathGlob": "Library/Application Support/Cursor/CachedExtensionVSIXs" },
-    "conditions": { "appNotRunning": "com.todesktop.230313mzl4w4u92" },
+    "match": {
+      "pathGlob": "Library/Application Support/Cursor/CachedExtensionVSIXs"
+    },
+    "conditions": {
+      "appNotRunning": "com.todesktop.230313mzl4w4u92"
+    },
     "bucket": "rebuilds",
     "action": "delete",
     "group": "Cursor temporary files",
@@ -35,8 +43,12 @@
   },
   {
     "id": "apps.cursor-state-backup",
-    "match": { "pathGlob": "Library/Application Support/Cursor/User/globalStorage/state.vscdb.backup" },
-    "conditions": { "appNotRunning": "com.todesktop.230313mzl4w4u92" },
+    "match": {
+      "pathGlob": "Library/Application Support/Cursor/User/globalStorage/state.vscdb.backup"
+    },
+    "conditions": {
+      "appNotRunning": "com.todesktop.230313mzl4w4u92"
+    },
     "bucket": "rebuilds",
     "action": "delete",
     "group": "Cursor temporary files",
@@ -52,14 +64,18 @@
   },
   {
     "id": "apps.communication-caches",
-    "match": { "regex": "^Library/(Application Support|Containers)/.*(Slack|Microsoft Teams|Teams|discord|zoom\\.us|WhatsApp|Telegram|Spotify).*/(Cache|Code Cache|GPUCache|CachedData|Service Worker/CacheStorage)$" },
-    "conditions": { "appNotRunning": "owner" },
+    "match": {
+      "regex": "^Library/(Application Support|Containers)/.*(Slack|Microsoft Teams|Teams|discord|zoom\\.us|WhatsApp|Telegram|Spotify).*/(Cache|Code Cache|GPUCache|CachedData|Service Worker/CacheStorage)$"
+    },
+    "conditions": {
+      "appNotRunning": "owner"
+    },
     "bucket": "rebuilds",
     "action": "delete",
     "group": "App caches",
     "title": "{app} cache",
     "explain": {
-      "whatItIs": "{app} keeps temporary copies here so messages, calls, or media open faster.",
+      "whatItIs": "{app} keeps temporary copies of images and files here so chats open faster. Your messages aren't stored here.",
       "ifRemoved": "{app} downloads these temporary copies again when needed.",
       "whyStale": "This cache is using {size}."
     },
@@ -69,8 +85,12 @@
   },
   {
     "id": "apps.spotify-cache",
-    "match": { "regex": "^Library/(Application Support|Caches)/.*Spotify.*/(PersistentCache|Storage|Cache)$" },
-    "conditions": { "appNotRunning": "com.spotify.client" },
+    "match": {
+      "regex": "^Library/(Application Support|Caches)/.*Spotify.*/(PersistentCache|Storage|Cache)$"
+    },
+    "conditions": {
+      "appNotRunning": "com.spotify.client"
+    },
     "bucket": "rebuilds",
     "action": "delete",
     "group": "App caches",
@@ -86,8 +106,12 @@
   },
   {
     "id": "apps.browser-caches",
-    "match": { "regex": "^Library/(Application Support|Caches)/.*(Google/Chrome|Google Chrome|Arc|BraveSoftware/Brave-Browser|Microsoft Edge).*/(Cache|Code Cache|GPUCache|Service Worker/CacheStorage)$" },
-    "conditions": { "appNotRunning": "owner" },
+    "match": {
+      "regex": "^Library/(Application Support|Caches)/.*(Google/Chrome|Google Chrome|Arc|BraveSoftware/Brave-Browser|Microsoft Edge).*/(Cache|Code Cache|GPUCache|Service Worker/CacheStorage)$"
+    },
+    "conditions": {
+      "appNotRunning": "owner"
+    },
     "bucket": "rebuilds",
     "action": "delete",
     "group": "Browser caches",
@@ -103,8 +127,12 @@
   },
   {
     "id": "apps.adobe-media-cache",
-    "match": { "regex": "^Library/Application Support/Adobe/Common/(Media Cache|Media Cache Files)$" },
-    "conditions": { "appNotRunning": "com.adobe.PremierePro" },
+    "match": {
+      "regex": "^Library/Application Support/Adobe/Common/(Media Cache|Media Cache Files)$"
+    },
+    "conditions": {
+      "appNotRunning": "com.adobe.PremierePro"
+    },
     "bucket": "rebuilds",
     "action": "delete",
     "group": "Adobe temporary media",
@@ -120,8 +148,12 @@
   },
   {
     "id": "apps.claude-vm-compressed",
-    "match": { "pathGlob": "Library/Application Support/Claude/vm_bundles/*.zst" },
-    "conditions": { "appNotRunning": "com.anthropic.claudefordesktop" },
+    "match": {
+      "pathGlob": "Library/Application Support/Claude/vm_bundles/*.zst"
+    },
+    "conditions": {
+      "appNotRunning": "com.anthropic.claudefordesktop"
+    },
     "bucket": "rebuilds",
     "action": "delete",
     "group": "Claude temporary files",
@@ -137,8 +169,12 @@
   },
   {
     "id": "apps.ios-backups",
-    "match": { "pathGlob": "Library/Application Support/MobileSync/Backup/*" },
-    "conditions": { "minAgeDays": 90 },
+    "match": {
+      "pathGlob": "Library/Application Support/MobileSync/Backup/*"
+    },
+    "conditions": {
+      "minAgeDays": 90
+    },
     "bucket": "review",
     "action": "trash",
     "group": "iPhone and iPad backups",
@@ -154,8 +190,13 @@
   },
   {
     "id": "apps.old-chat-history",
-    "match": { "regex": "^Library/(Application Support|Containers)/.*(Slack|Microsoft Teams|Teams|discord|zoom\\.us|WhatsApp|Telegram).*/(Archived Sessions|ChatHistory|conversations)$" },
-    "conditions": { "minAgeDays": 90, "appNotRunning": "owner" },
+    "match": {
+      "regex": "^Library/(Application Support|Containers)/.*(Slack|Microsoft Teams|Teams|discord|zoom\\.us|WhatsApp|Telegram).*/(Archived Sessions|ChatHistory|conversations)$"
+    },
+    "conditions": {
+      "minAgeDays": 90,
+      "appNotRunning": "owner"
+    },
     "bucket": "review",
     "action": "trash",
     "group": "Old chat history",
@@ -171,8 +212,12 @@
   },
   {
     "id": "apps.ipsw-files",
-    "match": { "pathGlob": "**/*.ipsw" },
-    "conditions": { "minAgeDays": 30 },
+    "match": {
+      "pathGlob": "**/*.ipsw"
+    },
+    "conditions": {
+      "minAgeDays": 30
+    },
     "bucket": "review",
     "action": "trash",
     "group": "Apple device updates",

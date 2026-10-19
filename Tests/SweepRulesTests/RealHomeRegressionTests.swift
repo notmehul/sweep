@@ -31,6 +31,7 @@ private func classify(_ relatives: [(String, Bool)], repositories: [String] = []
 @Test func projectClutterStillFoundInAStaleCleanRepo() throws {
     let findings = try classify([("Dev/old-app/node_modules", true)], repositories: ["Dev/old-app"])
     #expect(findings.contains { $0.ruleID == "dev.project-junk" && $0.bucket == .rebuilds })
+    #expect(findings.first { $0.ruleID == "dev.project-junk" }?.title == "old-app · node_modules")
 }
 
 @Test func onlyTopLevelDownloadsCountAsNeverOpened() throws {

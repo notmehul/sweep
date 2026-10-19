@@ -221,7 +221,9 @@ struct FindingInspector: View {
                 }
                 answer("What it is", finding.explanation.whatItIs).padding(.top, 22)
                 answer("If you remove it", finding.explanation.ifRemoved)
-                answer("Why Sweep flagged it", finding.explanation.whyStale)
+                answer("Why Sweep flagged it", row.findings.count > 1
+                       ? "\(row.findings.count) folders together use \(Format.bytes(row.size))."
+                       : finding.explanation.whyStale)
 
                 ForEach(row.paths.prefix(3), id: \.self) { path in
                     Text(Format.tilde(path))

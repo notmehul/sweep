@@ -83,7 +83,7 @@ struct EngineScanSource: ScanSource {
         let kept = Set(allItems.filter { (try? store?.isKept($0)) == true }.map(\.path))
         let findings = (engine.classify(allItems.filter { !kept.contains($0.path) })
                         + engine.classifyDuplicates(candidates.duplicateGroups.map { $0.filter { !kept.contains($0.path) } }))
-            .filter { $0.bucket != .dontTouch && !Self.belongsToMacOS($0) }
+            .filter { $0.bucket != .dontTouch }
         let tree = Self.colorize(result.root, findings: findings)
 
         let freeable = findings.filter { $0.bucket != .yours }.reduce(0) { $0 + $1.reclaimableSize }
@@ -118,12 +118,6 @@ struct EngineScanSource: ScanSource {
             return out
         }
         return paint(node)
-    }
-
-    /// Caches of macOS's own services (com.apple.*) are left alone: the services are usually
-    /// running, and "never touch system stuff" is a promise to the user.
-    static func belongsToMacOS(_ finding: Finding) -> Bool {
-        finding.items.contains { $0.path.split(separator: "/").contains { $0.hasPrefix("com.apple.") } }
     }
 
     static func tilde(_ path: String, home: String) -> String {

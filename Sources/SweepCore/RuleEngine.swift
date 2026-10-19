@@ -577,6 +577,9 @@ public final class RuleEngine: Sendable {
             "app": appName(owner: owner, path: item.path),
             "age": days.map { "\($0) days" } ?? "a while",
             "size": formatter.string(fromByteCount: item.reclaimableSize),
+            "folder": (item.path as NSString).lastPathComponent,
+            "project": facts.gitState(repoContaining: item.path).map { ($0.root as NSString).lastPathComponent }
+                ?? ((item.path as NSString).deletingLastPathComponent as NSString).lastPathComponent,
         ]
     }
 

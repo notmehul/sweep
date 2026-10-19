@@ -97,6 +97,12 @@ enum Format {
         }
     }
 
+    /// Disk totals before/after a cleanup: two decimals, so a 64 MB change doesn't read as 1 GB.
+    static func precise(_ value: Int64) -> String {
+        let v = Double(max(0, value))
+        return v >= 1e9 ? String(format: "%.2f GB", v / 1e9) : bytes(value)
+    }
+
     static func tilde(_ path: String) -> String {
         let home = NSHomeDirectory()
         return path.hasPrefix(home) ? "~" + path.dropFirst(home.count) : path

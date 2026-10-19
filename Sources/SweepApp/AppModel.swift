@@ -102,8 +102,10 @@ final class AppModel {
 
     func visibleFindings(in bucket: Bucket) -> [Finding] {
         guard let report else { return [] }
+        // Anything under 1 MB is noise when deciding what to clean (dozens of empty caches).
         return report.findings.filter {
             $0.bucket == bucket && !kept.contains($0.id) && (report.isDeveloper || !$0.isDeveloper)
+                && ($0.reclaimableSize >= 1_000_000 || $0.bucket == .yours)
         }
     }
 
@@ -116,7 +118,9 @@ final class AppModel {
 
     var selectedFindings: [Finding] {
         guard let report else { return [] }
-        return report.findings.filter { selection.contains($0.id) && !kept.contains($0.id) && $0.bucket != .yours }
+        return report.findings.filter {
+            selection.contains($0.id) && !kept.contains($0.id) && $0.bucket != .yours && $0.reclaimableSize >= 1_000_000
+        }
     }
 
     var selectedBytes: Int64 { selectedFindings.reduce(0) { $0 + $1.reclaimableSize } }

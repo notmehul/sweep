@@ -1,10 +1,14 @@
 [
   {
     "id": "dev.npm-cache",
-    "match": { "pathGlob": ".npm/_cacache" },
+    "match": {
+      "pathGlob": ".npm/_cacache"
+    },
     "conditions": {},
     "bucket": "rebuilds",
-    "action": { "toolCommand": "npmCacheClean" },
+    "action": {
+      "toolCommand": "npmCacheClean"
+    },
     "group": "Developer tool caches",
     "title": "npm package cache",
     "explain": {
@@ -18,10 +22,14 @@
   },
   {
     "id": "dev.bun-cache",
-    "match": { "pathGlob": ".bun/install/cache" },
+    "match": {
+      "pathGlob": ".bun/install/cache"
+    },
     "conditions": {},
     "bucket": "rebuilds",
-    "action": { "toolCommand": "bunCacheRm" },
+    "action": {
+      "toolCommand": "bunCacheRm"
+    },
     "group": "Developer tool caches",
     "title": "Bun package cache",
     "explain": {
@@ -35,10 +43,14 @@
   },
   {
     "id": "dev.uv-cache",
-    "match": { "pathGlob": ".cache/uv" },
+    "match": {
+      "pathGlob": ".cache/uv"
+    },
     "conditions": {},
     "bucket": "rebuilds",
-    "action": { "toolCommand": "uvCacheClean" },
+    "action": {
+      "toolCommand": "uvCacheClean"
+    },
     "group": "Developer tool caches",
     "title": "uv package cache",
     "explain": {
@@ -52,10 +64,14 @@
   },
   {
     "id": "dev.homebrew-cache",
-    "match": { "pathGlob": "Library/Caches/Homebrew" },
+    "match": {
+      "pathGlob": "Library/Caches/Homebrew"
+    },
     "conditions": {},
     "bucket": "rebuilds",
-    "action": { "toolCommand": "brewCleanup" },
+    "action": {
+      "toolCommand": "brewCleanup"
+    },
     "group": "Developer tool caches",
     "title": "Homebrew downloads",
     "explain": {
@@ -69,7 +85,9 @@
   },
   {
     "id": "dev.pip-cache",
-    "match": { "regex": "^(Library/Caches/pip|\\.cache/pip)$" },
+    "match": {
+      "regex": "^(Library/Caches/pip|\\.cache/pip)$"
+    },
     "conditions": {},
     "bucket": "rebuilds",
     "action": "delete",
@@ -86,8 +104,12 @@
   },
   {
     "id": "dev.xcode-derived-data",
-    "match": { "pathGlob": "Library/Developer/Xcode/DerivedData/*" },
-    "conditions": { "appNotRunning": "com.apple.dt.Xcode" },
+    "match": {
+      "pathGlob": "Library/Developer/Xcode/DerivedData/*"
+    },
+    "conditions": {
+      "appNotRunning": "com.apple.dt.Xcode"
+    },
     "bucket": "rebuilds",
     "action": "delete",
     "group": "Xcode temporary builds",
@@ -103,8 +125,13 @@
   },
   {
     "id": "dev.xcode-archives",
-    "match": { "pathGlob": "Library/Developer/Xcode/Archives/*" },
-    "conditions": { "minAgeDays": 90, "appNotRunning": "com.apple.dt.Xcode" },
+    "match": {
+      "pathGlob": "Library/Developer/Xcode/Archives/*"
+    },
+    "conditions": {
+      "minAgeDays": 90,
+      "appNotRunning": "com.apple.dt.Xcode"
+    },
     "bucket": "review",
     "action": "trash",
     "group": "Xcode app archives",
@@ -120,8 +147,13 @@
   },
   {
     "id": "dev.ios-device-support",
-    "match": { "pathGlob": "Library/Developer/Xcode/iOS DeviceSupport/*" },
-    "conditions": { "minAgeDays": 90, "appNotRunning": "com.apple.dt.Xcode" },
+    "match": {
+      "pathGlob": "Library/Developer/Xcode/iOS DeviceSupport/*"
+    },
+    "conditions": {
+      "minAgeDays": 90,
+      "appNotRunning": "com.apple.dt.Xcode"
+    },
     "bucket": "review",
     "action": "trash",
     "group": "Old iOS support files",
@@ -137,10 +169,17 @@
   },
   {
     "id": "dev.simulator-runtimes",
-    "match": { "pathGlob": "Library/Developer/CoreSimulator/Profiles/Runtimes/*.simruntime" },
-    "conditions": { "minAgeDays": 90, "appNotRunning": "com.apple.dt.Xcode" },
+    "match": {
+      "pathGlob": "Library/Developer/CoreSimulator/Profiles/Runtimes/*.simruntime"
+    },
+    "conditions": {
+      "minAgeDays": 90,
+      "appNotRunning": "com.apple.dt.Xcode"
+    },
     "bucket": "review",
-    "action": { "toolCommand": "simctlRuntimeDelete" },
+    "action": {
+      "toolCommand": "simctlRuntimeDelete"
+    },
     "group": "Simulator runtimes",
     "title": "Old simulator runtime",
     "explain": {
@@ -154,7 +193,9 @@
   },
   {
     "id": "dev.gradle-cache",
-    "match": { "pathGlob": ".gradle/caches" },
+    "match": {
+      "pathGlob": ".gradle/caches"
+    },
     "conditions": {},
     "bucket": "rebuilds",
     "action": "delete",
@@ -171,7 +212,9 @@
   },
   {
     "id": "dev.cocoapods-cache",
-    "match": { "pathGlob": "Library/Caches/CocoaPods" },
+    "match": {
+      "pathGlob": "Library/Caches/CocoaPods"
+    },
     "conditions": {},
     "bucket": "rebuilds",
     "action": "delete",
@@ -188,7 +231,9 @@
   },
   {
     "id": "dev.playwright-cache",
-    "match": { "pathGlob": "Library/Caches/ms-playwright" },
+    "match": {
+      "pathGlob": "Library/Caches/ms-playwright"
+    },
     "conditions": {},
     "bucket": "rebuilds",
     "action": "delete",
@@ -205,7 +250,9 @@
   },
   {
     "id": "dev.known-dot-caches",
-    "match": { "regex": "^\\.cache/(go-build|ruff|pre-commit|pnpm|yarn|deno)$" },
+    "match": {
+      "regex": "^\\.cache/(go-build|ruff|pre-commit|pnpm|yarn|deno)$"
+    },
     "conditions": {},
     "bucket": "rebuilds",
     "action": "delete",
@@ -222,8 +269,12 @@
   },
   {
     "id": "dev.local-models",
-    "match": { "regex": "^(\\.ollama/models|Library/Application Support/LM Studio/models|\\.cache/huggingface/hub)$" },
-    "conditions": { "minAgeDays": 90 },
+    "match": {
+      "regex": "^(\\.ollama/models|Library/Application Support/LM Studio/models|\\.cache/huggingface/hub)$"
+    },
+    "conditions": {
+      "minAgeDays": 90
+    },
     "bucket": "review",
     "action": "trash",
     "group": "Downloaded AI models",
@@ -239,8 +290,12 @@
   },
   {
     "id": "dev.old-cli-versions",
-    "match": { "regex": "^\\.local/share/(mise|asdf|nvm|pyenv|runtime-manager)/versions/[^/]+$" },
-    "conditions": { "notSymlinkTarget": true },
+    "match": {
+      "regex": "^\\.local/share/(mise|asdf|nvm|pyenv|runtime-manager)/versions/[^/]+$"
+    },
+    "conditions": {
+      "notSymlinkTarget": true
+    },
     "bucket": "rebuilds",
     "action": "delete",
     "group": "Old tool versions",
@@ -256,12 +311,17 @@
   },
   {
     "id": "dev.project-junk",
-    "match": { "regex": "(^|/)(node_modules|\\.venv|venv|\\.next|__pycache__|\\.turbo|\\.pytest_cache|\\.expo|Pods|\\.parcel-cache|\\.svelte-kit|build|dist|dist-[^/]+)$" },
-    "conditions": { "minAgeDays": 30, "cleanRepo": true },
+    "match": {
+      "regex": "(^|/)(node_modules|\\.venv|venv|\\.next|__pycache__|\\.turbo|\\.pytest_cache|\\.expo|Pods|\\.parcel-cache|\\.svelte-kit|build|dist|dist-[^/]+)$"
+    },
+    "conditions": {
+      "minAgeDays": 30,
+      "cleanRepo": true
+    },
     "bucket": "rebuilds",
     "action": "delete",
     "group": "Old project build files",
-    "title": "{app}",
+    "title": "{project} · {folder}",
     "explain": {
       "whatItIs": "A project made or downloaded this folder while building.",
       "ifRemoved": "The project's tools make it again when the project is used.",
