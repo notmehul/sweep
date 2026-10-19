@@ -96,7 +96,7 @@ public struct CandidateCollector: Sendable {
 
     private func boundedPersonalScan(home: String) -> PersonalScan {
         let names = ["Desktop", "Documents", "Downloads", "Pictures", "Movies"]
-        let duplicateRoots = Set(["Desktop", "Documents", "Downloads"])
+        let duplicateRoots = Set(names)
         var secrets: [ScannedItem] = []
         var screenshots: [ScannedItem] = []
         var duplicates: [ScannedItem] = []
@@ -126,7 +126,7 @@ public struct CandidateCollector: Sendable {
                     continue
                 }
                 if values.isDirectory == true {
-                    if values.isPackage == true || Self.isDeveloperJunk(url.lastPathComponent) {
+                    if values.isPackage == true || Self.isMediaLibrary(url) || Self.isDeveloperJunk(url.lastPathComponent) {
                         enumerator.skipDescendants()
                     }
                     continue
@@ -230,6 +230,13 @@ public struct CandidateCollector: Sendable {
 
     private func isInside(_ path: String, directory: String) -> Bool {
         path.hasPrefix(directory + "/")
+    }
+
+    /// Photo and video app libraries. macOS only treats them as packages when the app is
+    /// installed, and the files inside belong to the library, not to the user directly.
+    private static func isMediaLibrary(_ url: URL) -> Bool {
+        ["photoslibrary", "fcpbundle", "imovielibrary", "lrdata", "musiclibrary", "tvlibrary",
+         "photoboothlibrary", "cocatalog", "app"].contains(url.pathExtension.lowercased())
     }
 
     private static func isDeveloperJunk(_ name: String) -> Bool {

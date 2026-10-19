@@ -26,6 +26,7 @@ Sweep is a SwiftPM package built with the Command Line Tools alone. `scripts/bun
   - `bundleNotInstalled`, `notSymlinkTarget`, `staleDays`
   - `gitDirty`, `noRemote`, `coveredByIgnore`
   - `sharesBlocks`, `appRunning`
+  - `ownerApp`: the app a rule waits on (`appNotRunning`). The safety gate re-checks it at click time, because paths like `Movies/CacheClip` don't name their app.
 - **`Action`:** `delete | trash | toolCommand(allow-list) | showOnly`.
 - **`ScanProgress`:** bytes scanned, total used bytes, files counted, the current path, newly sized nodes for the sunburst, and the running total for each bucket.
 - **`ScanSnapshot`:** free, purgeable and snapshot space; coverage (Full Disk Access, Spotlight working, folders skipped); persona; findings.

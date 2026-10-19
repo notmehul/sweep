@@ -23,6 +23,8 @@ public final class RuleEngine: Sendable {
         self.filePrefilter = Self.prefilter(for: self.rules.filter { !$0.rule.unit })
     }
 
+    static let mailDownloads = "Library/Containers/com.apple.mail/Data/Library/Mail Downloads"
+
     /// Cheap name test run on every file before any regex. File rules only look at these
     /// shapes; `everyFileRuleFixturePassesTheFastFilter` keeps this list honest.
     static func fileMightMatch(_ relative: String) -> Bool {
@@ -84,8 +86,10 @@ public final class RuleEngine: Sendable {
             guard let relative = relativePath(item.path) else { continue }
             let owner = owner(for: relative)
             // macOS's own services (com.apple.*) are usually running, and "never touch system
-            // stuff" is a promise to the user, so their folders never become findings.
-            if relative.split(separator: "/").contains(where: { $0.hasPrefix("com.apple.") }) { continue }
+            // stuff" is a promise to the user, so their folders never become findings. The one
+            // exception is Mail's copies of opened attachments, which belong to the user.
+            if relative != Self.mailDownloads,
+               relative.split(separator: "/").contains(where: { $0.hasPrefix("com.apple.") }) { continue }
             for compiled in rules {
                 guard matches(compiled, item: item, relative: relative, owner: owner, context: context),
                       let result = conditionResult(
@@ -233,7 +237,7 @@ public final class RuleEngine: Sendable {
             return false
         }
         if compiled.rule.id == "yours.large-old-files",
-           item.reclaimableSize < 500 * 1_024 * 1_024 {
+           item.isDirectory || item.reclaimableSize < 500 * 1_024 * 1_024 {
             return false
         }
         if compiled.rule.id.hasPrefix("generic.orphan-"),
@@ -348,6 +352,7 @@ public final class RuleEngine: Sendable {
             guard let bundleID = bundle(notRunning), !facts.isRunning(bundleID: bundleID) else {
                 return nil
             }
+            evidence.append(.ownerApp(bundleID))
         }
 
         let git = facts.gitState(repoContaining: item.path)

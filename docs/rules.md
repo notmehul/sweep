@@ -70,3 +70,7 @@ These come from the manual cleanup that started this project:
 | `/private/var/folders/**/code_sign_clone` | dontTouch | `du` showed 326 GB, but they're clones. |
 | Large personal media, screen recordings | yours | |
 | Secret-looking file names | yours | Warning only. Report the name, never the contents. |
+| DaVinci `~/Movies/CacheClip`, Final Cut `Render Files` inside a `.fcpbundle`, Lightroom `Previews.lrdata` | rebuilds | The app re-renders them. Never Lightroom `Smart Previews`, which stand in for offline originals. Quit the app first; the owning app is recorded so the click-time check knows it. |
+| Mail `Mail Downloads` | review | Copies of opened attachments. The only `com.apple.*` path Sweep classifies. |
+| Messages attachments, WhatsApp media | yours | Family photos. Shown only; the explanation points to deleting inside the app. |
+| Any file of 500 MB+ not opened for a year | yours | Any type (PSD, BRAW, PDF), outside `Library`, hidden folders and media libraries. |

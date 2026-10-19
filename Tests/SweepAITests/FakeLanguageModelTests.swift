@@ -2,6 +2,8 @@ import FoundationModels
 import Testing
 @testable import SweepAI
 
+// Custom LanguageModel executors arrived in macOS 27; the app itself runs on 26.
+@available(macOS 27, *)
 private struct FakeLanguageModel: LanguageModel {
     typealias Executor = FakeLanguageModelExecutor
     var response: String
@@ -15,6 +17,7 @@ private struct FakeLanguageModel: LanguageModel {
     }
 }
 
+@available(macOS 27, *)
 private struct FakeLanguageModelExecutor: LanguageModelExecutor {
     struct Configuration: Hashable, Sendable {
         var response: String
@@ -39,6 +42,7 @@ private struct FakeLanguageModelExecutor: LanguageModelExecutor {
     }
 }
 
+@available(macOS 27, *)
 @Test func fakeExecutorDrivesARealLanguageModelSession() async throws {
     let json = """
         {

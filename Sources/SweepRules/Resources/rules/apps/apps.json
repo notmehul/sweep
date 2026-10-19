@@ -230,5 +230,89 @@
     "developer": false,
     "unit": false,
     "priority": 210
+  },
+  {
+    "id": "apps.davinci-cache",
+    "match": {
+      "regex": "^Movies/CacheClip$"
+    },
+    "conditions": {
+      "appNotRunning": "com.blackmagic-design.DaVinciResolve"
+    },
+    "bucket": "rebuilds",
+    "action": "delete",
+    "group": "Video editing temporary files",
+    "title": "DaVinci Resolve render cache",
+    "explain": {
+      "whatItIs": "DaVinci Resolve keeps rendered previews and optimized copies of your clips here so playback stays smooth.",
+      "ifRemoved": "Resolve renders them again from your original footage when a project needs them. Your projects and footage are not touched.",
+      "whyStale": "This render cache is using {size}."
+    },
+    "developer": false,
+    "unit": true,
+    "priority": 220
+  },
+  {
+    "id": "apps.final-cut-render-files",
+    "match": {
+      "regex": "^(?!Library/)(.+/)?[^/]+\\.fcpbundle/.+/Render Files$"
+    },
+    "conditions": {
+      "appNotRunning": "com.apple.FinalCut"
+    },
+    "bucket": "rebuilds",
+    "action": "delete",
+    "group": "Video editing temporary files",
+    "title": "Final Cut Pro render files",
+    "explain": {
+      "whatItIs": "Final Cut Pro keeps rendered previews of your edits here so playback stays smooth.",
+      "ifRemoved": "Final Cut renders them again when you play or export the project. Your library, edits and media stay as they are.",
+      "whyStale": "These render files are using {size}."
+    },
+    "developer": false,
+    "unit": true,
+    "priority": 220
+  },
+  {
+    "id": "apps.lightroom-previews",
+    "match": {
+      "regex": "^(?!Library/)(.+/)?[^/]+(?<!Smart) Previews\\.lrdata$"
+    },
+    "conditions": {
+      "appNotRunning": "com.adobe.LightroomClassicCC7"
+    },
+    "bucket": "rebuilds",
+    "action": "delete",
+    "group": "Photo editing temporary files",
+    "title": "Lightroom previews",
+    "explain": {
+      "whatItIs": "Lightroom Classic keeps preview images of your photos here so the library scrolls quickly.",
+      "ifRemoved": "Lightroom makes new previews from your original photos as you browse. Your photos and edits are not touched.",
+      "whyStale": "These previews are using {size}."
+    },
+    "developer": false,
+    "unit": true,
+    "priority": 220
+  },
+  {
+    "id": "apps.mail-downloads",
+    "match": {
+      "regex": "^Library/Containers/com\\.apple\\.mail/Data/Library/Mail Downloads$"
+    },
+    "conditions": {
+      "appNotRunning": "com.apple.mail"
+    },
+    "bucket": "review",
+    "action": "trash",
+    "group": "Mail attachments you opened",
+    "title": "Opened Mail attachments",
+    "explain": {
+      "whatItIs": "Copies Mail saved when you opened attachments. The originals stay inside your emails.",
+      "ifRemoved": "Sweep moves this folder to the Trash. If you edited an attachment here without saving it elsewhere, those changes would only be in the Trash.",
+      "whyStale": "These copies are using {size}."
+    },
+    "developer": false,
+    "unit": true,
+    "priority": 220
   }
 ]

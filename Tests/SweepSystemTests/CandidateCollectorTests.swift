@@ -55,3 +55,24 @@ private struct CandidateFacts: CandidateCollectionFacts {
     #expect(candidates.duplicateGroups.count == 1)
     #expect(candidates.duplicateGroups.first?.count == 2)
 }
+
+@Test func duplicatesAreFoundInPicturesAndMoviesButNotInsideLibraries() async throws {
+    let fixture = try FixtureTree()
+    defer { fixture.remove() }
+    _ = try fixture.regularFile("Pictures/Shoot/look-01.jpg", size: 1_100_000)
+    _ = try fixture.regularFile("Pictures/Shoot copy/look-01.jpg", size: 1_100_000)
+    _ = try fixture.regularFile("Movies/Footage/A001.mov", size: 2_200_000)
+    _ = try fixture.regularFile("Movies/Footage backup/A001.mov", size: 2_200_000)
+    _ = try fixture.regularFile("Movies/Edit.fcpbundle/Original Media/A001.mov", size: 2_200_000)
+
+    let candidates = await CandidateCollector().collect(
+        home: fixture.root.path,
+        facts: CandidateFacts(homeDirectory: fixture.root.path),
+        walkerItems: []
+    )
+    let groups = candidates.duplicateGroups.map { Set($0.map { URL(fileURLWithPath: $0.path).deletingLastPathComponent().lastPathComponent }) }
+
+    #expect(groups.count == 2)
+    #expect(groups.contains(["Shoot", "Shoot copy"]))
+    #expect(groups.contains(["Footage", "Footage backup"]))
+}

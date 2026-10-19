@@ -110,7 +110,7 @@ public enum SafetyGate {
     public static func bundleIdentifier(for finding: Finding) -> String? {
         for evidence in finding.evidence {
             switch evidence {
-            case .appRunning(let bundleID), .bundleNotInstalled(let bundleID):
+            case .appRunning(let bundleID), .bundleNotInstalled(let bundleID), .ownerApp(let bundleID):
                 if looksLikeBundleIdentifier(bundleID) { return bundleID }
             default:
                 break

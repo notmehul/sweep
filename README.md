@@ -12,7 +12,7 @@ Explanations come from Apple's on-device model. There's no server, no account an
 
 ## Build
 
-Requires macOS 27+ on Apple Silicon and the Command Line Tools. Xcode isn't needed.
+Requires macOS 26+ on Apple Silicon and the Command Line Tools. Xcode isn't needed.
 
 ```sh
 swift test          # engine tests

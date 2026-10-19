@@ -109,6 +109,9 @@ public struct OnDeviceExplainer: Explaining {
     }
 
     private func fits(prompt: String, schema: GenerationSchema, responseTokens: Int) async throws -> Bool {
+        // Token counting arrived in 26.4. Before it, the prompts are short enough to try, and
+        // an over-long one throws, which every caller already treats as "no explanation".
+        guard #available(macOS 26.4, *) else { return true }
         let instructionTokens = try await model.tokenCount(for: Instructions(Self.instructions))
         let promptTokens = try await model.tokenCount(for: prompt)
         let schemaTokens = try await model.tokenCount(for: schema)

@@ -90,6 +90,8 @@ public enum Evidence: Sendable, Hashable, Codable {
     case appRunning(String)
     case duplicateOf(String)
     case installerForInstalledApp(String)
+    /// The app that must be closed before this item is removed; the safety gate re-checks it.
+    case ownerApp(String)
 }
 
 public struct LastUsed: Sendable, Hashable, Codable {

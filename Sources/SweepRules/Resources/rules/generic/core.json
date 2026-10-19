@@ -292,7 +292,7 @@
   {
     "id": "yours.large-old-files",
     "match": {
-      "regex": "(?i)^.+\\.(mov|mp4|m4v|avi|mkv|zip|7z|rar|tar|gz|dmg|iso)$"
+      "regex": "(?i)^(?!Library/|Applications/|\\.)(?!.*/\\.)(?!.*\\.(app|photoslibrary|fcpbundle|lrdata|musiclibrary|tvlibrary|imovielibrary|photoboothlibrary)/).+\\.[a-z0-9]+$"
     },
     "conditions": {
       "minAgeDays": 365,
@@ -303,7 +303,7 @@
     "group": "Large files not opened recently",
     "title": "{app}",
     "explain": {
-      "whatItIs": "This is one of your media or archive files.",
+      "whatItIs": "This is one of your own large files.",
       "ifRemoved": "Sweep only shows it in Finder; the choice is yours.",
       "whyStale": "It has not been opened for {age} and uses {size}."
     },
@@ -348,5 +348,43 @@
     "developer": false,
     "unit": false,
     "priority": 300
+  },
+  {
+    "id": "yours.messages-attachments",
+    "match": {
+      "regex": "^Library/Messages/Attachments$"
+    },
+    "conditions": {},
+    "bucket": "yours",
+    "action": "showOnly",
+    "group": "Photos and files from chats",
+    "title": "Messages attachments",
+    "explain": {
+      "whatItIs": "Photos, videos and files people sent you in Messages.",
+      "ifRemoved": "Sweep won't remove these. Delete large attachments inside Messages, or in System Settings > General > Storage, so your chats stay in order.",
+      "whyStale": "These attachments are using {size}."
+    },
+    "developer": false,
+    "unit": true,
+    "priority": 85
+  },
+  {
+    "id": "yours.whatsapp-media",
+    "match": {
+      "regex": "^Library/Group Containers/group\\.net\\.whatsapp\\.WhatsApp\\.shared/Message/Media$"
+    },
+    "conditions": {},
+    "bucket": "yours",
+    "action": "showOnly",
+    "group": "Photos and files from chats",
+    "title": "WhatsApp photos and videos",
+    "explain": {
+      "whatItIs": "Photos, videos and voice notes from your WhatsApp chats, saved on this Mac.",
+      "ifRemoved": "Sweep won't remove these. Delete them inside WhatsApp so your chats stay in order; they may still be on your phone.",
+      "whyStale": "These files are using {size}."
+    },
+    "developer": false,
+    "unit": true,
+    "priority": 85
   }
 ]
